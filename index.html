@@ -1032,6 +1032,34 @@ function renderHome() {
 
   html += `<div class="filter-tabs" id="filter-tabs">${tabHtml}</div>`;
 
+  // AI analysis panel — only show when a specific category is selected
+  if (homeFilter !== 'all') {
+    const cat = CATS[homeFilter];
+    const cache = analysisCache[homeFilter];
+    const catItems = db.items.filter(i => i.category === homeFilter);
+    const dataHash = catItems.map(i => `${i.price}${i.note}${(i.colors||[]).join('')}`).join('|');
+    const isStale = cache && cache.hash !== dataHash;
+
+    html += `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer" onclick="toggleAnalysisPanel()">
+        <span style="font-size:13px;color:var(--text-secondary)">📊 ${cat?.name || ''} · 價格帶特徵分析</span>
+        ${isStale ? `<span style="font-size:10px;background:rgba(200,57,43,0.1);color:var(--accent);padding:2px 8px;border-radius:10px">資料已更新</span>` : ''}
+        <span id="analysis-toggle-icon" style="margin-left:auto;font-size:12px;color:var(--text-muted)">${cache ? '▼' : '▼'}</span>
+      </div>
+      <div id="analysis-panel" style="display:${cache ? 'block' : 'none'};border-top:1px solid var(--border);padding:16px">
+        ${cache ? `<div id="analysis-content">${cache.html}</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+            <span style="font-size:11px;color:var(--text-muted)">上次分析：${cache.time}</span>
+            <button class="btn btn-ghost" onclick="runAnalysis('${homeFilter}')" style="font-size:11px;padding:4px 10px">重新分析</button>
+          </div>` :
+          `<div id="analysis-content" style="text-align:center;padding:16px 0">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">點擊分析，歸納 ${catItems.length} 件商品的價格帶特徵</div>
+            <button class="btn btn-accent" onclick="runAnalysis('${homeFilter}')" style="font-size:12px">開始分析</button>
+          </div>`}
+      </div>
+    </div>`;
+  }
+
   if (!filtered.length) {
     const emptyMsg = homeSearch
       ? `沒有符合「${homeSearch}」的商品`
@@ -1098,6 +1126,88 @@ function renderHome() {
   document.getElementById('page-content').innerHTML = html;
   if (batchMode) document.getElementById('page-content').style.paddingBottom = '80px';
   else document.getElementById('page-content').style.paddingBottom = '';
+}
+
+let analysisCache = JSON.parse(localStorage.getItem('analysis_cache') || '{}');
+
+function toggleAnalysisPanel() {
+  const panel = document.getElementById('analysis-panel');
+  const icon = document.getElementById('analysis-toggle-icon');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (icon) icon.textContent = isOpen ? '▼' : '▲';
+}
+
+async function runAnalysis(catKey) {
+  const cat = CATS[catKey];
+  const catItems = db.items.filter(i => i.category === catKey);
+  if (!catItems.length) return;
+
+  const contentEl = document.getElementById('analysis-content');
+  if (contentEl) {
+    contentEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;color:var(--text-secondary);font-size:13px"><div class="spinner" style="width:16px;height:16px;border-color:rgba(0,0,0,0.1);border-top-color:var(--text-secondary)"></div>AI 分析中…</div>`;
+  }
+  const panel = document.getElementById('analysis-panel');
+  if (panel) panel.style.display = 'block';
+
+  // Build summary for AI
+  const summary = catItems.map(i =>
+    `價格$${i.price||'未知'} 特徵:${i.note||'無'} 顏色:${(i.colors||[]).join('/')||'無'} 尺寸:${(i.sizes||[]).join('/')||'無'}${(i.accessories||[]).length?' 附件:'+(i.accessories.join('/')):''}`.trim()
+  ).join('\n');
+
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: 'analysis',
+        prompt: `你是服飾店員工助手。以下是「${cat.name}」分類的所有商品資料：
+
+${summary}
+
+請根據以上資料，歸納每個價格帶的款式特徵，幫助員工在客人問「這件多少錢」時，能根據款式快速推測價格。
+
+格式要求：
+- 按價格從低到高排列
+- 每個價格帶一行，格式：「$XXX — 特徵描述」
+- 特徵描述20字以內，具體說明款式、材質、設計細節
+- 如果某個價格帶只有一件，也要列出
+- 只輸出價格帶列表，不要其他說明文字`
+      })
+    });
+    const data = await resp.json();
+    const text = data.result || data.note || '';
+
+    // Format the result as HTML
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    const resultHtml = lines.map(line => {
+      const match = line.match(/\$(\d+)\s*[—–-]\s*(.+)/);
+      if (match) {
+        const pc = getPriceColor(parseInt(match[1]));
+        return `<div style="display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="background:${pc.bg};color:#fff;font-size:12px;padding:2px 10px;border-radius:4px;flex-shrink:0;min-width:52px;text-align:center">$${match[1]}</span>
+          <span style="font-size:13px;color:var(--text-secondary)">${match[2]}</span>
+        </div>`;
+      }
+      return `<div style="font-size:13px;color:var(--text-secondary);padding:4px 0">${line}</div>`;
+    }).join('');
+
+    const dataHash = catItems.map(i => `${i.price}${i.note}${(i.colors||[]).join('')}`).join('|');
+    const now = new Date().toLocaleString('zh-TW', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    analysisCache[catKey] = { html: resultHtml, hash: dataHash, time: now };
+    localStorage.setItem('analysis_cache', JSON.stringify(analysisCache));
+
+    if (contentEl) {
+      contentEl.innerHTML = `<div>${resultHtml}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <span style="font-size:11px;color:var(--text-muted)">上次分析：${now}</span>
+          <button class="btn btn-ghost" onclick="runAnalysis('${catKey}')" style="font-size:11px;padding:4px 10px">重新分析</button>
+        </div>`;
+    }
+  } catch(e) {
+    if (contentEl) contentEl.innerHTML = `<div style="font-size:13px;color:var(--accent)">分析失敗，請再試一次</div>`;
+  }
 }
 
 function toggleBatchMode() {
