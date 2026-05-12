@@ -299,8 +299,10 @@ body {
   margin-bottom: 10px;
   cursor: pointer;
   transition: all 0.15s;
+  position: relative;
 }
 .item-card:hover { border-color: var(--border-strong); box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.item-card.batch-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .item-price-banner {
   background: var(--accent);
   color: #fff;
@@ -987,9 +989,14 @@ function setTopbar(title, bc, actions = '') {
 // ── Home ──
 let homeFilter = 'all';
 let homeSearch = '';
+let batchMode = false;
+let batchSelected = new Set();
 
 function renderHome() {
-  setTopbar('商品總覽', '', `<button class="btn btn-accent" onclick="navigate('upload')">＋ 上傳新品</button>`);
+  setTopbar('商品總覽', '', `
+    <button class="btn btn-ghost" onclick="toggleBatchMode()" id="batch-toggle-btn">${batchMode ? '✕ 取消選取' : '☑ 批次調整'}</button>
+    <button class="btn btn-accent" onclick="navigate('upload')">＋ 上傳新品</button>
+  `);
 
   // Apply search + category filter
   let filtered = homeFilter === 'all' ? db.items : db.items.filter(i => i.category === homeFilter);
@@ -1051,7 +1058,9 @@ function renderHome() {
     const colorsStr = (item.colors||[]).map(c=>`<span class="item-tag">${c}</span>`).join('');
     const sizesStr  = (item.sizes||[]).map(s=>`<span class="item-tag">${s}</span>`).join('');
     const accStr    = (item.accessories||[]).map(a=>`<span class="item-tag" style="border-color:var(--accent);color:var(--accent)">${a}</span>`).join('');
-    html += `<div class="item-card" onclick="openModal('${item.id}')">
+    const isSel = batchSelected.has(item.id);
+    html += `<div class="item-card${isSel?' batch-selected':''}" onclick="${batchMode ? `toggleBatchSelect('${item.id}',this)` : `openModal('${item.id}')`}" style="${batchMode?'cursor:pointer;':''}" >
+      ${batchMode ? `<div style="position:absolute;top:8px;left:8px;z-index:2;width:20px;height:20px;border-radius:50%;background:${isSel?'var(--accent)':'rgba(255,255,255,0.9)'};border:2px solid ${isSel?'var(--accent)':'rgba(0,0,0,0.2)'};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff">${isSel?'✓':''}</div>` : ''}
       <div class="item-price-banner" style="background:${item.price ? pc.bg : 'var(--text-muted)'};color:${pc.text}">${item.price ? '$'+item.price : '?'}</div>
       <div style="background:${item.price ? pc.bg+'18' : 'rgba(0,0,0,0.04)'};padding:3px 12px;font-size:10px;color:${item.price ? pc.bg : 'var(--text-muted)'};letter-spacing:0.04em">${cat.icon} ${cat.name}</div>
       <div class="item-img-wrap">
@@ -1070,7 +1079,123 @@ function renderHome() {
   });
   html += `</div>`;
 
+  // Batch action bar
+  if (batchMode) {
+    html += `<div id="batch-bar" style="position:fixed;bottom:0;left:var(--sidebar-w);right:0;background:var(--bg-card);border-top:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:12px;z-index:50;box-shadow:0 -4px 20px rgba(0,0,0,0.08)">
+      <span style="font-size:13px;color:var(--text-secondary)">已選 <strong>${batchSelected.size}</strong> 件</span>
+      <button class="btn btn-ghost" onclick="batchSelectAll()" style="font-size:12px">全選</button>
+      <button class="btn btn-ghost" onclick="batchSelected.clear();renderHome()" style="font-size:12px">清除</button>
+      <div style="flex:1"></div>
+      ${batchSelected.size > 0 ? `
+      <button class="btn btn-ghost" onclick="openBatchPanel('category')" style="font-size:12px">改分類</button>
+      <button class="btn btn-ghost" onclick="openBatchPanel('sizes')" style="font-size:12px">改尺寸</button>
+      <button class="btn btn-ghost" onclick="openBatchPanel('colors')" style="font-size:12px">改顏色</button>
+      <button class="btn btn-ghost" onclick="openBatchPanel('accessories')" style="font-size:12px">改附件</button>
+      ` : ''}
+    </div>`;
+  }
+
   document.getElementById('page-content').innerHTML = html;
+  if (batchMode) document.getElementById('page-content').style.paddingBottom = '80px';
+  else document.getElementById('page-content').style.paddingBottom = '';
+}
+
+function toggleBatchMode() {
+  batchMode = !batchMode;
+  batchSelected.clear();
+  renderHome();
+}
+
+function toggleBatchSelect(id, el) {
+  if (batchSelected.has(id)) batchSelected.delete(id);
+  else batchSelected.add(id);
+  renderHome();
+}
+
+function batchSelectAll() {
+  const filtered = homeFilter === 'all' ? db.items : db.items.filter(i => i.category === homeFilter);
+  filtered.forEach(i => batchSelected.add(i.id));
+  renderHome();
+}
+
+function openBatchPanel(field) {
+  const modal = document.getElementById('modal');
+  document.getElementById('modal-img').style.display = 'none';
+  document.getElementById('modal-replace-btn')?.remove();
+
+  const labels = { category: '分類', sizes: '尺寸', colors: '顏色', accessories: '附件' };
+
+  let content = '';
+  if (field === 'category') {
+    content = Object.entries(CATS).map(([k,v]) =>
+      `<button class="btn btn-ghost" style="margin:4px;font-size:13px" onclick="applyBatch('category','${k}')">${v.icon} ${v.name}</button>`
+    ).join('');
+  } else if (field === 'sizes') {
+    content = SIZES_PRESET.map(s =>
+      `<button class="btn btn-ghost" style="margin:4px;font-size:13px" onclick="applyBatchToggle('sizes','${s}',this)">${s}</button>`
+    ).join('');
+    content += `<div style="margin-top:12px;font-size:11px;color:var(--text-muted)">點擊：全部加上此尺寸 / 再點：全部移除此尺寸</div>`;
+  } else if (field === 'colors') {
+    content = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <input type="text" class="field-input" id="batch-color-input" placeholder="輸入顏色後按 Enter" onkeydown="batchAddColor(event)">
+    </div><div style="font-size:11px;color:var(--text-muted)">按 Enter 為所有選取商品加上此顏色</div>`;
+  } else if (field === 'accessories') {
+    content = ['含胸墊','含皮帶'].map(a =>
+      `<button class="btn btn-ghost" style="margin:4px;font-size:13px" onclick="applyBatchToggle('accessories','${a}',this)">${a}</button>`
+    ).join('');
+    content += `<div style="margin-top:12px;font-size:11px;color:var(--text-muted)">點擊：全部加上 / 再點：全部移除</div>`;
+  }
+
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <span style="font-family:var(--font-serif);font-size:16px">批次修改${labels[field]}</span>
+      <span style="font-size:12px;color:var(--text-muted)">${batchSelected.size} 件</span>
+      <button class="modal-close" onclick="closeModal()" style="margin-left:auto">✕</button>
+    </div>
+    <div>${content}</div>`;
+
+  modal.style.display = 'flex';
+}
+
+function applyBatch(field, val) {
+  batchSelected.forEach(id => {
+    const item = db.items.find(i => i.id === id);
+    if (item) item[field] = val;
+  });
+  save();
+  closeModal();
+}
+
+function applyBatchToggle(field, val, btn) {
+  // Check if majority have it → remove; otherwise add
+  const items = [...batchSelected].map(id => db.items.find(i => i.id === id)).filter(Boolean);
+  const hasCount = items.filter(i => (i[field]||[]).includes(val)).length;
+  const shouldAdd = hasCount < items.length / 2;
+  items.forEach(item => {
+    if (!item[field]) item[field] = [];
+    if (shouldAdd && !item[field].includes(val)) item[field].push(val);
+    else if (!shouldAdd) item[field] = item[field].filter(v => v !== val);
+  });
+  btn.style.background = shouldAdd ? 'var(--accent)' : '';
+  btn.style.color = shouldAdd ? '#fff' : '';
+  btn.style.borderColor = shouldAdd ? 'var(--accent)' : '';
+  save();
+}
+
+function batchAddColor(event) {
+  if (event.key !== 'Enter') return;
+  const val = event.target.value.trim();
+  if (!val) return;
+  batchSelected.forEach(id => {
+    const item = db.items.find(i => i.id === id);
+    if (item) {
+      if (!item.colors) item.colors = [];
+      if (!item.colors.includes(val)) item.colors.push(val);
+    }
+  });
+  save();
+  event.target.value = '';
+  event.target.placeholder = `✓ 已加上「${val}」`;
 }
 
 function setHomeFilter(key) {
@@ -1745,9 +1870,14 @@ function renderCatMgmt() {
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;max-width:520px" id="cat-list">`;
 
-  Object.entries(CATS).forEach(([key, cat]) => {
+  const catEntries = Object.entries(CATS);
+  catEntries.forEach(([key, cat], idx) => {
     const count = db.items.filter(i => i.category === key).length;
     html += `<div class="cat-mgmt-row" id="catrow-${key}">
+      <div style="display:flex;flex-direction:column;gap:2px;margin-right:4px">
+        <button onclick="moveCat('${key}',-1)" ${idx===0?'disabled':''} style="width:18px;height:18px;border:none;background:transparent;cursor:pointer;color:var(--text-muted);font-size:10px;padding:0;line-height:1;opacity:${idx===0?0.2:0.6}">▲</button>
+        <button onclick="moveCat('${key}',1)" ${idx===catEntries.length-1?'disabled':''} style="width:18px;height:18px;border:none;background:transparent;cursor:pointer;color:var(--text-muted);font-size:10px;padding:0;line-height:1;opacity:${idx===catEntries.length-1?0.2:0.6}">▼</button>
+      </div>
       <div class="cat-mgmt-icon-btn" onclick="cycleCatIcon('${key}')" title="點擊換圖示">${cat.icon}</div>
       <input class="field-input cat-mgmt-name" value="${cat.name}" onchange="updateCatName('${key}',this.value)" style="flex:1">
       <span style="font-size:11px;color:var(--text-muted);min-width:36px;text-align:right">${count} 件</span>
@@ -1786,6 +1916,19 @@ function cycleCatIcon(key) {
   const cur = CATS[key].icon;
   const idx = icons.indexOf(cur);
   CATS[key].icon = icons[(idx + 1) % icons.length];
+  saveCats();
+  renderCatMgmt();
+}
+
+function moveCat(key, dir) {
+  const entries = Object.entries(CATS);
+  const idx = entries.findIndex(([k]) => k === key);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= entries.length) return;
+  // Swap
+  [entries[idx], entries[newIdx]] = [entries[newIdx], entries[idx]];
+  // Rebuild CATS as ordered object
+  CATS = Object.fromEntries(entries);
   saveCats();
   renderCatMgmt();
 }
