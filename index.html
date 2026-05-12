@@ -852,16 +852,22 @@ async function save() {
   isSaving = true;
   showSyncIndicator('saving');
   try {
-    await fetch(JSONBIN_URL, {
+    const payload = { items: db.items, memos: db.memos, lookbook: db.lookbook || [] };
+    console.log('Saving to JSONBin, items count:', db.items.length);
+    const resp = await fetch(JSONBIN_URL, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'X-Master-Key': JSONBIN_KEY
       },
-      body: JSON.stringify({ items: db.items, memos: db.memos, lookbook: db.lookbook || [] })
+      body: JSON.stringify(payload)
     });
+    const result = await resp.json();
+    console.log('JSONBin save response:', resp.status, JSON.stringify(result).slice(0, 200));
+    if (!resp.ok) throw new Error(`JSONBin error: ${resp.status} ${JSON.stringify(result)}`);
     showSyncIndicator('saved');
   } catch(e) {
+    console.error('Save failed:', e);
     showSyncIndicator('error');
   }
   isSaving = false;
