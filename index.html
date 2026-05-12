@@ -757,8 +757,11 @@ select.field-input { cursor: pointer; }
     <div class="nav-item" onclick="navigate('memo')" id="nav-memo">
       <span class="nav-icon">📌</span> 員工備忘錄
     </div>
+    <div class="nav-item" onclick="navigate('settings')" id="nav-settings">
+      <span class="nav-icon">⚙️</span> 設定
+    </div>
     <div style="padding:16px 20px;margin-top:auto;border-top:1px solid rgba(255,255,255,0.06)">
-      <div onclick="clearAllData()" style="font-size:10px;color:var(--text-sidebar-muted);cursor:pointer;letter-spacing:0.04em;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⚠ 清除所有資料</div>
+      <div style="font-size:10px;color:var(--text-sidebar-muted);opacity:0.4;letter-spacing:0.04em">Staff Internal v1</div>
     </div>
   </div>
 </nav>
@@ -952,7 +955,7 @@ function navigate(page, cat) {
 
 function renderPage() {
   updateSidebarCounts();
-  const pages = { home: renderHome, upload: renderUpload, memo: renderMemo, catMgmt: renderCatMgmt, lookbook: renderLookbook };
+  const pages = { home: renderHome, upload: renderUpload, memo: renderMemo, catMgmt: renderCatMgmt, lookbook: renderLookbook, settings: renderSettings };
   (pages[currentPage] || renderHome)();
 }
 
@@ -1803,6 +1806,45 @@ function addCat() {
   renderCatMgmt();
 }
 
+
+// ── Settings ──
+function renderSettings() {
+  setTopbar('設定', '');
+  document.getElementById('page-content').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">設定</div>
+    </div>
+
+    <div style="max-width:520px;display:flex;flex-direction:column;gap:12px;">
+
+      <div class="memo-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div style="font-family:var(--font-serif);font-size:14px;margin-bottom:3px">商品資料</div>
+            <div style="font-size:12px;color:var(--text-muted)">儲存於 JSONBin 雲端</div>
+          </div>
+          <span style="font-size:12px;color:var(--text-secondary)">${db.items.length} 件商品</span>
+        </div>
+      </div>
+
+      <div class="memo-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div style="font-family:var(--font-serif);font-size:14px;margin-bottom:3px">穿拍圖庫</div>
+            <div style="font-size:12px;color:var(--text-muted)">照片儲存於 Cloudinary</div>
+          </div>
+          <span style="font-size:12px;color:var(--text-secondary)">${(db.lookbook||[]).length} 張</span>
+        </div>
+      </div>
+
+      <div class="memo-card" style="border-color:rgba(200,57,43,0.2)">
+        <div style="font-family:var(--font-serif);font-size:14px;margin-bottom:6px;color:#c8392b">危險區域</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">清除所有商品、備忘錄、穿拍資料。照片不會從 Cloudinary 刪除。此動作無法復原。</div>
+        <button onclick="clearAllData()" style="font-size:12px;padding:7px 16px;border-radius:6px;border:1px solid rgba(200,57,43,0.4);background:transparent;color:#c8392b;cursor:pointer;transition:all 0.15s" onmouseover="this.style.background='rgba(200,57,43,0.08)'" onmouseout="this.style.background='transparent'">清除所有資料</button>
+      </div>
+
+    </div>`;
+}
 
 function clearAllData() {
   if (confirm('確定要清除所有商品資料嗎？此動作無法復原。')) {
