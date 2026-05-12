@@ -810,26 +810,26 @@ let CATS = JSON.parse(localStorage.getItem('clothing_cats') || 'null') || DEFAUL
 function saveCats() { localStorage.setItem('clothing_cats', JSON.stringify(CATS)); }const SIZES_PRESET  = ['F','XS','S','M','L','XL'];
 
 const PRICE_COLORS = {
-  350: { bg: '#7a9aaa', text: '#fff' },  // 冷 — 霧藍
-  400: { bg: '#6a8fa0', text: '#fff' },  // 冷 — 石板藍
-  450: { bg: '#7a8fa8', text: '#fff' },  // 冷 — 灰藍
-  500: { bg: '#7a90a0', text: '#fff' },  // 冷中性 — 藍灰
-  550: { bg: '#8a90a0', text: '#fff' },  // 中性 — 藍灰紫
-  600: { bg: '#8a8aa0', text: '#fff' },  // 中性 — 灰紫
-  650: { bg: '#9a8aa0', text: '#fff' },  // 中性暖 — 薰衣草
-  700: { bg: '#a08090', text: '#fff' },  // 中性暖 — 淡玫瑰
-  750: { bg: '#b07880', text: '#fff' },  // 暖 — 玫瑰
-  800: { bg: '#b87060', text: '#fff' },  // 暖 — 磚紅
-  850: { bg: '#c06848', text: '#fff' },  // 暖 — 赤陶
-  900: { bg: '#c86040', text: '#fff' },  // 暖強 — 橘紅
-  950: { bg: '#c85838', text: '#fff' },  // 暖強 — 深橘
-  1000: { bg: '#c05030', text: '#fff' }, // 熱 — 橘
-  1100: { bg: '#b84828', text: '#fff' }, // 熱 — 深橘紅
-  1200: { bg: '#b04020', text: '#fff' }, // 熱強 — 紅橘
-  1300: { bg: '#a83820', text: '#fff' }, // 熱強 — 深紅橘
-  1500: { bg: '#a03018', text: '#fff' }, // 熱烈 — 深紅
-  1800: { bg: '#982818', text: '#fff' }, // 熱烈 — 暗紅
-  2000: { bg: '#901818', text: '#fff' }, // 最貴 — 酒紅
+  350: { bg: '#6a9fb5', text: '#fff' },  // 天藍
+  400: { bg: '#7a8fb0', text: '#fff' },  // 藍紫
+  450: { bg: '#8a82b8', text: '#fff' },  // 薰衣草
+  500: { bg: '#9a78a8', text: '#fff' },  // 紫
+  550: { bg: '#a87898', text: '#fff' },  // 紫玫瑰
+  600: { bg: '#b07880', text: '#fff' },  // 玫瑰
+  650: { bg: '#b87868', text: '#fff' },  // 珊瑚
+  700: { bg: '#c07850', text: '#fff' },  // 橘棕
+  750: { bg: '#c07838', text: '#fff' },  // 橘
+  800: { bg: '#b86830', text: '#fff' },  // 深橘
+  850: { bg: '#b05828', text: '#fff' },  // 橘紅
+  900: { bg: '#a84820', text: '#fff' },  // 深橘紅
+  950: { bg: '#a03818', text: '#fff' },  // 磚紅
+  1000: { bg: '#983018', text: '#fff' }, // 深磚紅
+  1100: { bg: '#902818', text: '#fff' }, // 紅
+  1200: { bg: '#882010', text: '#fff' }, // 深紅
+  1300: { bg: '#801810', text: '#fff' }, // 暗紅
+  1500: { bg: '#781010', text: '#fff' }, // 酒紅
+  1800: { bg: '#700808', text: '#fff' }, // 深酒紅
+  2000: { bg: '#680808', text: '#fff' }, // 最深
 };
 function getPriceColor(price) {
   if (!price) return { bg: '#8a8078', text: '#fff' };
