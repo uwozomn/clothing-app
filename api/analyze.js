@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 這張照片上有用紅色或白色手寫的價格數字（通常是兩位數乘以10，如45=450、50=500、60=600、80=800）。檔名也可能包含價格或款式資訊可以參考。
 
 請辨識並只回傳以下JSON，不要有任何其他文字、說明或markdown：
-{"price":數字或null,"category":"top_fitted或two_piece或top_other或outer或bottom或dress或other","colors":["顏色"],"note":"10字內特徵"}
+{"price":數字或null,"category":"top_fitted或two_piece或top_other或outer或bottom或dress或other","colors":["顏色用單字不加色字，例如白黑灰米棕藍綠粉紅紫橘花格條"],"note":"10字內特徵"}
 
 category說明：top_fitted=貼身上衣、two_piece=兩件套、top_other=其他上衣、outer=外套、bottom=下身、dress=洋裝、other=其他` }
           ]
