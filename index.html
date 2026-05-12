@@ -1168,13 +1168,14 @@ ${summary}
 
 任務：歸納每個價格帶的款式特徵，讓員工光看衣服外觀就能猜到價格。
 
-要求：
-1. 每個價格帶的描述必須獨特，不能和其他價格帶重複
-2. 只描述「視覺上可以直接看到」的特徵：領口形狀、袖子設計、表面材質、裝飾細節、版型剪裁
-3. 不要用「基礎款」「進階款」「高端款」這種模糊評價詞
-4. 每行格式：$XXX — 具體特徵1、具體特徵2（20字以內）
-5. 按價格從低到高排列
-6. 只輸出列表，不要任何說明文字`
+每行格式：$XXX 【款式定位】— 具體視覺特徵1、特徵2、特徵3
+
+規則：
+1. 【款式定位】是2-4字的風格標題，例如：基礎素色、設計細節、精緻工藝、休閒寬鬆、修身顯瘦
+2. 具體特徵只描述「視覺上可以直接看到」的東西：領口形狀、袖子設計、材質、裝飾細節
+3. 每個價格帶的具體特徵必須和其他價格帶不同，不能重複
+4. 按價格從低到高排列
+5. 只輸出列表，不要任何說明文字`
       })
     });
     const data = await resp.json();
@@ -1183,12 +1184,22 @@ ${summary}
     // Format the result as HTML
     const lines = text.trim().split('\n').filter(l => l.trim());
     const resultHtml = lines.map(line => {
-      const match = line.match(/\$(\d+)\s*[—–-]\s*(.+)/);
+      const match = line.match(/\$(\d+)\s*【(.+?)】\s*[—–-]\s*(.+)/);
       if (match) {
         const pc = getPriceColor(parseInt(match[1]));
-        return `<div style="display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+        return `<div style="display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
           <span style="background:${pc.bg};color:#fff;font-size:12px;padding:2px 10px;border-radius:4px;flex-shrink:0;min-width:52px;text-align:center">$${match[1]}</span>
-          <span style="font-size:13px;color:var(--text-secondary)">${match[2]}</span>
+          <span style="font-size:12px;font-weight:500;color:${pc.bg};flex-shrink:0">${match[2]}</span>
+          <span style="font-size:13px;color:var(--text-secondary)">${match[3]}</span>
+        </div>`;
+      }
+      // Fallback for lines without title format
+      const simple = line.match(/\$(\d+)\s*[—–-]\s*(.+)/);
+      if (simple) {
+        const pc = getPriceColor(parseInt(simple[1]));
+        return `<div style="display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="background:${pc.bg};color:#fff;font-size:12px;padding:2px 10px;border-radius:4px;flex-shrink:0;min-width:52px;text-align:center">$${simple[1]}</span>
+          <span style="font-size:13px;color:var(--text-secondary)">${simple[2]}</span>
         </div>`;
       }
       return `<div style="font-size:13px;color:var(--text-secondary);padding:4px 0">${line}</div>`;
