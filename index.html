@@ -810,26 +810,26 @@ let CATS = JSON.parse(localStorage.getItem('clothing_cats') || 'null') || DEFAUL
 function saveCats() { localStorage.setItem('clothing_cats', JSON.stringify(CATS)); }const SIZES_PRESET  = ['F','XS','S','M','L','XL'];
 
 const PRICE_COLORS = {
-  350: { bg: '#7b9e87', text: '#fff' },
-  400: { bg: '#6b9aaa', text: '#fff' },
-  450: { bg: '#8b7faa', text: '#fff' },
-  500: { bg: '#b07d8a', text: '#fff' },
-  550: { bg: '#b8936a', text: '#fff' },
-  600: { bg: '#6a9e78', text: '#fff' },
-  650: { bg: '#5b8fa8', text: '#fff' },
-  700: { bg: '#9b7baa', text: '#fff' },
-  750: { bg: '#b08060', text: '#fff' },
-  800: { bg: '#6a8e9f', text: '#fff' },
-  850: { bg: '#8b6b8b', text: '#fff' },
-  900: { bg: '#5a7a6a', text: '#fff' },
-  950: { bg: '#7a6b9b', text: '#fff' },
-  1000: { bg: '#9b7060', text: '#fff' },
-  1100: { bg: '#5a8a7a', text: '#fff' },
-  1200: { bg: '#8a7b5a', text: '#fff' },
-  1300: { bg: '#6a7a9b', text: '#fff' },
-  1500: { bg: '#9b6b7a', text: '#fff' },
-  1800: { bg: '#7a9b6a', text: '#fff' },
-  2000: { bg: '#6b7aaa', text: '#fff' },
+  350: { bg: '#7b9e87', text: '#fff' },  // sage green
+  400: { bg: '#6b9aaa', text: '#fff' },  // dusty blue
+  450: { bg: '#8b7faa', text: '#fff' },  // lavender
+  500: { bg: '#b07d8a', text: '#fff' },  // dusty rose
+  550: { bg: '#b8936a', text: '#fff' },  // warm sand
+  600: { bg: '#a07860', text: '#fff' },  // terracotta
+  650: { bg: '#7a8fa0', text: '#fff' },  // slate blue
+  700: { bg: '#9b7baa', text: '#fff' },  // plum
+  750: { bg: '#c4956a', text: '#fff' },  // caramel
+  800: { bg: '#6a9e8a', text: '#fff' },  // teal
+  850: { bg: '#8b6b8b', text: '#fff' },  // mauve
+  900: { bg: '#7a8a5a', text: '#fff' },  // olive
+  950: { bg: '#9b6b6b', text: '#fff' },  // brick
+  1000: { bg: '#5a7a9b', text: '#fff' }, // steel blue
+  1100: { bg: '#8a9b6a', text: '#fff' }, // moss
+  1200: { bg: '#9b8a5a', text: '#fff' }, // gold
+  1300: { bg: '#6a8a7a', text: '#fff' }, // sage teal
+  1500: { bg: '#8a6a7a', text: '#fff' }, // antique rose
+  1800: { bg: '#6a7a5a', text: '#fff' }, // forest
+  2000: { bg: '#5a6a8a', text: '#fff' }, // navy
 };
 function getPriceColor(price) {
   if (!price) return { bg: '#8a8078', text: '#fff' };
