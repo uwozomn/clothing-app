@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>服飾店商品管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f2ed;
+  --bg-card: #faf8f5;
+  --bg-sidebar: #1a1814;
+  --text-primary: #1a1814;
+  --text-secondary: #7a7268;
+  --text-muted: #b0aa9f;
+  --text-sidebar: #e8e2d8;
+  --text-sidebar-muted: #7a7060;
+  --border: rgba(26,24,20,0.1);
+  --border-strong: rgba(26,24,20,0.2);
+  --accent: #c8392b;
+  --accent-soft: rgba(200,57,43,0.08);
+  --sidebar-w: 220px;
+  --font-serif: 'Noto Serif TC', serif;
+  --font-sans: 'Noto Sans TC', sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text-primary);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+/* ── Sidebar ── */
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-sidebar);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 0;
+  z-index: 10;
+}
+.sidebar-brand {
+  padding: 28px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.sidebar-brand-name {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-sidebar);
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+.sidebar-brand-sub {
+  font-size: 10px;
+  color: var(--text-sidebar-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 0;
+  overflow-y: auto;
+}
+.nav-section-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-sidebar-muted);
+  padding: 12px 20px 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  font-size: 13px;
+  color: var(--text-sidebar-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text-sidebar); background: rgba(255,255,255,0.04); }
+.nav-item.active { color: var(--text-sidebar); border-left-color: var(--accent); background: rgba(255,255,255,0.05); }
+.nav-icon { font-size: 16px; width: 18px; text-align: center; opacity: 0.7; }
+.nav-item.active .nav-icon { opacity: 1; }
+.sidebar-count {
+  margin-left: auto;
+  font-size: 10px;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-sidebar-muted);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+/* ── Main ── */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.topbar {
+  height: 56px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+.topbar-breadcrumb {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.topbar-breadcrumb span { color: var(--text-secondary); }
+.topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+.btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+  font-weight: 400;
+}
+.btn-ghost { background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--border); color: var(--text-primary); }
+.btn-accent { background: var(--accent); border: 1px solid var(--accent); color: #fff; }
+.btn-accent:hover { opacity: 0.9; }
+
+.page-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 28px 28px;
+}
+
+/* ── Filter tabs ── */
+.filter-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+.filter-tab:hover { background: var(--bg-card); color: var(--text-primary); }
+.filter-tab.active { background: var(--text-primary); color: var(--bg); border-color: var(--text-primary); }
+.filter-tab-count {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.filter-tab.active .filter-tab-count { opacity: 0.7; }
+
+/* ── Category overview (homepage) ── */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 4px;
+}
+.cat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+.cat-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s;
+}
+.cat-card:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.07); }
+.cat-card:hover::after { transform: scaleX(1); }
+.cat-card-icon { font-size: 26px; margin-bottom: 12px; }
+.cat-card-name { font-family: var(--font-serif); font-size: 15px; font-weight: 400; margin-bottom: 4px; }
+.cat-card-count { font-size: 11px; color: var(--text-muted); }
+.cat-card-prices { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 4px; }
+.price-pip {
+  font-size: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* ── Board view ── */
+.board-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.back-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-secondary);
+  cursor: pointer; padding: 5px 0;
+  transition: color 0.15s;
+}
+.back-btn:hover { color: var(--text-primary); }
+/* ── Items grid ── */
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.board-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 20px;
+  align-items: flex-start;
+}
+.board-scroll::-webkit-scrollbar { height: 5px; }
+.board-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+.price-col {
+  flex-shrink: 0;
+  width: 200px;
+}
+.price-col-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 2px;
+}
+.price-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.price-label-count { font-size: 11px; color: var(--text-muted); }
+.price-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Item card ── */
+.item-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.item-card:hover { border-color: var(--border-strong); box-shadow: 0 3px 12px rgba(0,0,0,0.06); }
+.item-price-banner {
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  text-align: center;
+  width: 100%;
+}
+.item-img-wrap { aspect-ratio: 3/4; overflow: hidden; background: #eae6e0; }
+.item-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+.item-card:hover .item-img-wrap img { transform: scale(1.03); }
+.item-body { padding: 9px 11px; border-top: 1px solid var(--border); }
+.item-attr-row { display: flex; align-items: baseline; gap: 5px; margin-bottom: 3px; }
+.item-attr-label { font-size: 9px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; min-width: 34px; }
+.item-attr-val { font-size: 11px; color: var(--text-secondary); flex: 1; }
+.item-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+.item-tag {
+  font-size: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ── Upload page ── */
+.upload-area {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 24px;
+}
+.upload-area:hover, .upload-area.drag-over { background: var(--bg-card); border-color: var(--accent); }
+.upload-icon { font-size: 36px; color: var(--text-muted); margin-bottom: 12px; }
+.upload-text { font-size: 14px; color: var(--text-secondary); margin-bottom: 4px; }
+.upload-sub { font-size: 11px; color: var(--text-muted); }
+
+.upload-queue { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.queue-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+.queue-img { width: 100%; aspect-ratio: 3/4; object-fit: cover; background: #eae6e0; }
+.queue-body { padding: 10px 12px; }
+.queue-analyzing {
+  position: absolute; inset: 0;
+  background: rgba(26,24,20,0.55);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 8px; color: #fff; font-size: 11px;
+}
+.spinner { width: 22px; height: 22px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.field-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.field-label { font-size: 10px; color: var(--text-muted); min-width: 28px; }
+.field-input {
+  font-size: 12px; flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+.field-input:focus { outline: none; border-color: var(--border-strong); }
+select.field-input { cursor: pointer; }
+
+.tag-editor { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.tag-chip {
+  font-size: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 3px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.tag-chip.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+.save-bar {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 16px 0 4px;
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 24px;
+}
+.save-count { font-size: 13px; color: var(--text-secondary); }
+
+/* ── Memo page ── */
+.memo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.memo-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.memo-card-title { font-family: var(--font-serif); font-size: 14px; margin-bottom: 10px; }
+.memo-card textarea {
+  width: 100%; border: none; background: transparent;
+  font-family: var(--font-sans); font-size: 12px;
+  color: var(--text-secondary); resize: none;
+  line-height: 1.7; min-height: 80px;
+  outline: none;
+}
+.add-memo-btn {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 10px;
+  padding: 18px 20px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 13px; color: var(--text-muted);
+  transition: all 0.15s;
+}
+.add-memo-btn:hover { background: var(--bg-card); color: var(--text-secondary); }
+
+/* ── Modal ── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(26,24,20,0.6);
+  z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.modal {
+  background: var(--bg-card);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 860px;
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+}
+.modal-img-panel {
+  width: 300px;
+  flex-shrink: 0;
+  position: relative;
+  background: #1a1814;
+  display: flex;
+  flex-direction: column;
+}
+.modal-img {
+  width: 100%;
+  aspect-ratio: 9/16;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  background: #eae6e0;
+}
+.modal-img-placeholder {
+  aspect-ratio: 9/16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: #eae6e0;
+}
+.modal-replace-bar {
+  padding: 8px 12px;
+  background: rgba(26,24,20,0.75);
+  display: flex;
+  justify-content: center;
+}
+.modal-replace-bar button {
+  font-size: 11px; padding: 5px 14px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.2); background: transparent;
+  color: #fff; cursor: pointer; transition: background 0.15s;
+}
+.modal-replace-bar button:hover { background: rgba(255,255,255,0.1); }
+.modal-body {
+  flex: 1;
+  padding: 22px 24px;
+  overflow-y: auto;
+  min-width: 0;
+}
+.modal-close {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; font-size: 14px; color: var(--text-secondary);
+  background: transparent; transition: all 0.1s; flex-shrink: 0;
+}
+.modal-close:hover { background: var(--bg); }
+.modal-section-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+.modal-attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.attr-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.attr-box-label { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
+.attr-box-val { font-size: 13px; color: var(--text-primary); }
+.attr-box-empty { color: var(--text-muted); font-size: 12px; }
+
+@media (max-width: 680px) {
+  .modal {
+    flex-direction: column;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    align-self: flex-end;
+    margin: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal-img-panel {
+    width: 100%;
+    max-height: 52vh;
+  }
+  .modal-img {
+    width: 100%;
+    max-height: 52vh;
+    object-fit: contain;
+    background: #1a1814;
+  }
+  .modal-body { padding: 16px; }
+}
+
+/* ── Lookbook ── */
+.lookbook-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.lookbook-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lookbook-card:hover { border-color: var(--border-strong); box-shadow: 0 4px 16px rgba(0,0,0,0.07); transform: translateY(-2px); }
+.lookbook-img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; background: #eae6e0; }
+.lookbook-body { padding: 10px 14px; }
+.lookbook-links { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.lookbook-link-chip {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--bg);
+}
+
+/* ── Lookbook modal ── */
+.lb-modal-img { width: 100%; max-height: 50vh; object-fit: contain; background: #1a1814; display: block; }
+.lb-item-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 2px;
+}
+.lb-picker-item {
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.12s;
+  position: relative;
+}
+.lb-picker-item:hover { border-color: var(--border-strong); }
+.lb-picker-item.selected { border-color: var(--accent); }
+.lb-picker-item img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; }
+.lb-picker-check {
+  position: absolute; top: 3px; right: 3px;
+  width: 16px; height: 16px;
+  background: var(--accent); color: #fff;
+  border-radius: 50%; font-size: 9px;
+  display: none; align-items: center; justify-content: center;
+}
+.lb-picker-item.selected .lb-picker-check { display: flex; }
+.lb-picker-label { font-size: 9px; color: var(--text-muted); padding: 3px 4px; text-align: center; line-height: 1.3; }
+
+/* ── Category management ── */
+.cat-mgmt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.cat-mgmt-icon-btn {
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.1s;
+  user-select: none;
+}
+.cat-mgmt-icon-btn:hover { background: var(--bg); }
+.cat-mgmt-name {
+  border-color: transparent;
+  background: transparent;
+  font-size: 13px;
+}
+.cat-mgmt-name:hover, .cat-mgmt-name:focus { border-color: var(--border-strong); background: var(--bg); }
+.cat-mgmt-del {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+.cat-mgmt-del:hover:not(:disabled) { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+.cat-mgmt-del:disabled { opacity: 0.25; cursor: not-allowed; }
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-muted);
+}
+.empty-icon { font-size: 40px; margin-bottom: 16px; }
+.empty-text { font-size: 14px; }
+
+/* ── Misc ── */
+.section-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 20px; }
+.section-title { font-family: var(--font-serif); font-size: 18px; font-weight: 400; }
+.section-sub { font-size: 12px; color: var(--text-muted); }
+
+/* ── Mobile ── */
+.menu-btn {
+  display: none;
+  width: 36px; height: 36px;
+  align-items: center; justify-content: center;
+  border: none; background: transparent;
+  cursor: pointer; flex-shrink: 0;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.menu-btn:hover { background: var(--border); }
+.menu-btn svg { width: 18px; height: 18px; stroke: var(--text-primary); stroke-width: 1.8; fill: none; }
+
+#sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 19;
+  backdrop-filter: blur(1px);
+}
+
+@media (max-width: 680px) {
+  body { overflow: hidden; }
+
+  #sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    width: 240px;
+  }
+  #sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+  }
+  #sidebar-overlay.open { display: block; }
+
+  .menu-btn { display: flex; }
+
+  .topbar {
+    padding: 0 16px;
+    gap: 10px;
+  }
+  .topbar-title { font-size: 14px; }
+
+  .page-content { padding: 16px; }
+
+  .filter-tabs { gap: 4px; }
+  .filter-tab { padding: 5px 10px; font-size: 11px; }
+
+  .price-col { width: 160px; }
+
+  .overview-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .items-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .lookbook-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .upload-queue { grid-template-columns: 1fr; }
+
+  .modal {
+    flex-direction: column;
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+  .modal-img-panel {
+    width: 100%;
+  }
+  .modal-img {
+    aspect-ratio: 4/5;
+    width: 100%;
+  }
+  .modal-img-placeholder {
+    aspect-ratio: 4/5;
+  }
+  .modal-body {
+    overflow-y: visible;
+    padding: 16px;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar overlay -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-name">服飾店<br>商品管理</div>
+    <div class="sidebar-brand-sub">Staff Internal</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">款式管理</div>
+    <div class="nav-item active" onclick="navigate('home')" id="nav-home">
+      <span class="nav-icon">🗂</span> 商品總覽
+      <span class="sidebar-count" id="sc-home">0</span>
+    </div>
+    <div class="nav-item" onclick="navigate('upload')" id="nav-upload">
+      <span class="nav-icon">📷</span> 上傳新品
+    </div>
+    <div class="nav-item" onclick="navigate('lookbook')" id="nav-lookbook">
+      <span class="nav-icon">🖼</span> 穿拍圖庫
+      <span class="sidebar-count" id="sc-lookbook">0</span>
+    </div>
+    <div class="nav-item" onclick="navigate('catMgmt')" id="nav-catMgmt">
+      <span class="nav-icon">🏷</span> 分類管理
+    </div>
+    <div class="nav-section-label" style="margin-top:8px;">其他</div>
+    <div class="nav-item" onclick="navigate('memo')" id="nav-memo">
+      <span class="nav-icon">📌</span> 員工備忘錄
+    </div>
+    <div style="padding:16px 20px;margin-top:auto;border-top:1px solid rgba(255,255,255,0.06)">
+      <div onclick="clearAllData()" style="font-size:10px;color:var(--text-sidebar-muted);cursor:pointer;letter-spacing:0.04em;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">⚠ 清除所有資料</div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<div id="main">
+  <div class="topbar">
+    <button class="menu-btn" onclick="openSidebar()" aria-label="選單">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div>
+      <div class="topbar-title" id="topbar-title">商品總覽</div>
+      <div class="topbar-breadcrumb" id="topbar-bc"></div>
+    </div>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </div>
+  <div class="page-content" id="page-content"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal" style="display:none" onclick="closeModal(event)">
+  <div class="modal" id="modal-inner">
+    <div class="modal-img-panel" id="modal-img-panel">
+      <img class="modal-img" id="modal-img" src="" alt="">
+      <div class="modal-replace-bar" id="modal-replace-bar" style="display:none">
+        <input type="file" id="modal-photo-input" accept="image/*" style="display:none">
+        <button onclick="document.getElementById('modal-photo-input').click()">🔄 更換照片</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ── Data ──
+const DEFAULT_CATS = {
+  top_fitted: { name: '貼身上衣', icon: '👕' },
+  two_piece:  { name: '兩件套',   icon: '🧥' },
+  top_other:  { name: '其他上衣', icon: '👔' },
+  outer:      { name: '外套',     icon: '🧣' },
+  bottom:     { name: '下身',     icon: '👖' },
+  dress:      { name: '洋裝',     icon: '👗' },
+  other:      { name: '其他',     icon: '📦' }
+};
+let CATS = JSON.parse(localStorage.getItem('clothing_cats') || 'null') || DEFAULT_CATS;
+function saveCats() { localStorage.setItem('clothing_cats', JSON.stringify(CATS)); }const SIZES_PRESET  = ['XS','S','M','L','XL','F'];
+
+const PRICE_COLORS = {
+  350: { bg: '#7b9e87', text: '#fff' },
+  400: { bg: '#6b9aaa', text: '#fff' },
+  450: { bg: '#8b7faa', text: '#fff' },
+  500: { bg: '#b07d8a', text: '#fff' },
+  550: { bg: '#c49a6c', text: '#fff' },
+  600: { bg: '#7a9e7e', text: '#fff' },
+  650: { bg: '#5b8fa8', text: '#fff' },
+  700: { bg: '#9b7baa', text: '#fff' },
+  750: { bg: '#b08060', text: '#fff' },
+  800: { bg: '#6a8e7f', text: '#fff' },
+  850: { bg: '#8b6b8b', text: '#fff' },
+  900: { bg: '#5a7a8a', text: '#fff' },
+};
+function getPriceColor(price) {
+  return PRICE_COLORS[price] || { bg: '#8a8078', text: '#fff' };
+}
+
+// ── Cloud Config ──
+const CLOUDINARY_CLOUD = 'dfsxm3vdp';
+const CLOUDINARY_PRESET = 'mili FJSS';
+const JSONBIN_BIN = '6a020b1ac0954111d80ab2f8';
+const JSONBIN_KEY = '$2a$10$SMstC0wgmNXXSiIWujaxnOStQJKS6JXdkJKyPV5hAzjmyo4hdqUH6';
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`;
+
+let db = { items: [], memos: [] };
+let currentPage = 'home';
+let currentCat = null;
+let uploadQueue = [];
+let isSaving = false;
+
+// ── Load from cloud on start ──
+async function loadFromCloud() {
+  showGlobalLoading(true);
+  try {
+    const resp = await fetch(JSONBIN_URL + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    const data = await resp.json();
+    if (data.record) {
+      db = { items: data.record.items || [], memos: data.record.memos || [], lookbook: data.record.lookbook || [] };
+    }
+  } catch(e) {
+    console.warn('Cloud load failed, using empty db', e);
+  }
+  showGlobalLoading(false);
+  renderPage();
+}
+
+async function save() {
+  if (isSaving) return;
+  isSaving = true;
+  showSyncIndicator('saving');
+  try {
+    await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY
+      },
+      body: JSON.stringify({ items: db.items, memos: db.memos, lookbook: db.lookbook || [] })
+    });
+    showSyncIndicator('saved');
+  } catch(e) {
+    showSyncIndicator('error');
+  }
+  isSaving = false;
+}
+
+async function uploadToCloudinary(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_PRESET);
+  const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+    method: 'POST',
+    body: formData
+  });
+  const data = await resp.json();
+  if (!data.secure_url) throw new Error('Cloudinary upload failed');
+  return data.secure_url;
+}
+
+function showGlobalLoading(on) {
+  let el = document.getElementById('global-loading');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'global-loading';
+    el.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px';
+    el.innerHTML = '<div class="spinner" style="width:28px;height:28px;border-color:rgba(26,24,20,0.15);border-top-color:var(--text-primary)"></div><div style="font-size:13px;color:var(--text-secondary)">載入中…</div>';
+    document.body.appendChild(el);
+  }
+  el.style.display = on ? 'flex' : 'none';
+}
+
+function showSyncIndicator(state) {
+  let el = document.getElementById('sync-indicator');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sync-indicator';
+    el.style.cssText = 'position:fixed;bottom:16px;right:16px;font-size:11px;padding:5px 12px;border-radius:20px;z-index:50;transition:all 0.3s;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  if (state === 'saving') {
+    el.style.background = 'var(--text-primary)'; el.style.color = 'var(--bg)'; el.style.opacity = '1';
+    el.textContent = '同步中…';
+  } else if (state === 'saved') {
+    el.style.background = '#7b9e87'; el.style.color = '#fff'; el.style.opacity = '1';
+    el.textContent = '✓ 已同步';
+    setTimeout(() => { el.style.opacity = '0'; }, 2000);
+  } else {
+    el.style.background = '#c8392b'; el.style.color = '#fff'; el.style.opacity = '1';
+    el.textContent = '⚠ 同步失敗';
+  }
+}
+
+function genId() { return 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2,6); }
+
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ── Navigate ──
+function navigate(page, cat) {
+  currentPage = page;
+  currentCat = cat || null;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + (['board'].includes(page) ? 'home' : page));
+  if (navEl) navEl.classList.add('active');
+  closeSidebar();
+  if (page !== 'home') homeSearch = '';
+  renderPage();
+}
+
+function renderPage() {
+  updateSidebarCounts();
+  const pages = { home: renderHome, upload: renderUpload, memo: renderMemo, catMgmt: renderCatMgmt, lookbook: renderLookbook };
+  (pages[currentPage] || renderHome)();
+}
+
+function updateSidebarCounts() {
+  document.getElementById('sc-home').textContent = db.items.length;
+  const lbEl = document.getElementById('sc-lookbook');
+  if (lbEl) lbEl.textContent = (db.lookbook||[]).length;
+}
+
+function setTopbar(title, bc, actions = '') {
+  document.getElementById('topbar-title').textContent = title;
+  document.getElementById('topbar-bc').innerHTML = bc;
+  document.getElementById('topbar-actions').innerHTML = actions;
+}
+
+// ── Home ──
+let homeFilter = 'all';
+let homeSearch = '';
+
+function renderHome() {
+  setTopbar('商品總覽', '', `<button class="btn btn-accent" onclick="navigate('upload')">＋ 上傳新品</button>`);
+
+  // Apply search + category filter
+  let filtered = homeFilter === 'all' ? db.items : db.items.filter(i => i.category === homeFilter);
+  if (homeSearch.trim()) {
+    const q = homeSearch.trim().toLowerCase();
+    filtered = filtered.filter(i => {
+      const cat = CATS[i.category];
+      return (i.note||'').toLowerCase().includes(q)
+        || (i.colors||[]).some(c => c.toLowerCase().includes(q))
+        || (i.sizes||[]).some(s => s.toLowerCase().includes(q))
+        || (cat && cat.name.toLowerCase().includes(q))
+        || String(i.price||'').includes(q);
+    });
+  }
+
+  // Search bar
+  let html = `<div style="position:relative;margin-bottom:14px">
+    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none">🔍</span>
+    <input type="text" id="search-input" value="${homeSearch.replace(/"/g,'&quot;')}"
+      placeholder="搜尋特徵、顏色、尺寸…"
+      oninput="setHomeSearch(this.value)"
+      style="width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);font-size:13px;font-family:var(--font-sans);color:var(--text-primary);outline:none;box-sizing:border-box"
+      onfocus="this.style.borderColor='var(--border-strong)'"
+      onblur="this.style.borderColor='var(--border)'">
+    ${homeSearch ? `<span onclick="setHomeSearch('')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:13px;color:var(--text-muted)">✕</span>` : ''}
+  </div>`;
+
+  // Tab bar
+  const tabs = [['all','全部款式', db.items.length], ...Object.entries(CATS).map(([k,v]) => [k, v.name, db.items.filter(i=>i.category===k).length])];
+  const tabHtml = tabs.map(([key, label, cnt]) =>
+    `<button class="filter-tab${homeFilter===key?' active':''}" onclick="setHomeFilter('${key}')">${label}<span class="filter-tab-count">${cnt}</span></button>`
+  ).join('');
+
+  html += `<div class="filter-tabs" id="filter-tabs">${tabHtml}</div>`;
+
+  if (!filtered.length) {
+    const emptyMsg = homeSearch
+      ? `沒有符合「${homeSearch}」的商品`
+      : '這個分類還沒有商品<br><span style="cursor:pointer;color:var(--accent)" onclick="navigate(\'upload\')">去上傳新品 →</span>';
+    html += `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">${emptyMsg}</div></div>`;
+    document.getElementById('page-content').innerHTML = html;
+    // restore focus if searching
+    if (homeSearch) { const el = document.getElementById('search-input'); if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);} }
+    return;
+  }
+
+  // Sort all filtered items by price (nulls last)
+  const sortedItems = [...filtered].sort((a, b) => {
+    if (!a.price && !b.price) return 0;
+    if (!a.price) return 1;
+    if (!b.price) return -1;
+    return a.price - b.price;
+  });
+
+  html += `<div class="items-grid">`;
+  sortedItems.forEach(item => {
+    const cat = CATS[item.category] || { icon: '📦', name: '其他' };
+    const pc = getPriceColor(item.price);
+    const colorsStr = (item.colors||[]).map(c=>`<span class="item-tag">${c}</span>`).join('');
+    const sizesStr  = (item.sizes||[]).map(s=>`<span class="item-tag">${s}</span>`).join('');
+    const accStr    = (item.accessories||[]).map(a=>`<span class="item-tag" style="border-color:var(--accent);color:var(--accent)">${a}</span>`).join('');
+    html += `<div class="item-card" onclick="openModal('${item.id}')">
+      <div class="item-price-banner" style="background:${item.price ? pc.bg : 'var(--text-muted)'};color:${pc.text}">${item.price ? '$'+item.price : '?'}</div>
+      <div style="background:${item.price ? pc.bg+'18' : 'rgba(0,0,0,0.04)'};padding:3px 12px;font-size:10px;color:${item.price ? pc.bg : 'var(--text-muted)'};letter-spacing:0.04em">${cat.icon} ${cat.name}</div>
+      <div class="item-img-wrap">
+        ${item.url ? `<img src="${item.url}" alt="" loading="lazy">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#b0aa9f;font-size:28px">${cat.icon}</div>`}
+      </div>
+      <div class="item-body">
+        <div class="item-attr-row">
+          <span class="item-attr-label">特徵</span>
+          <span class="item-attr-val">${item.note || '—'}</span>
+        </div>
+        ${sizesStr ? `<div class="item-attr-row"><span class="item-attr-label">Size</span><div class="item-tags">${sizesStr}</div></div>` : ''}
+        ${colorsStr ? `<div class="item-attr-row"><span class="item-attr-label">Color</span><div class="item-tags">${colorsStr}</div></div>` : ''}
+        ${accStr ? `<div class="item-attr-row"><span class="item-attr-label">附件</span><div class="item-tags">${accStr}</div></div>` : ''}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  document.getElementById('page-content').innerHTML = html;
+}
+
+function setHomeFilter(key) {
+  homeFilter = key;
+  renderHome();
+  // restore search input focus
+  const el = document.getElementById('search-input');
+  if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+}
+
+function setHomeSearch(val) {
+  homeSearch = val;
+  renderHome();
+}
+
+// ── Upload ──
+function renderUpload() {
+  setTopbar('上傳新品', '');
+  uploadQueue = [];
+
+  let html = `
+  <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+    <input type="file" id="file-input" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)">
+    <div class="upload-icon">📷</div>
+    <div class="upload-text">點此選擇照片，或將照片拖曳到這裡</div>
+    <div class="upload-sub">AI 會自動辨識紅字標價與款式類型，可以一次上傳多張</div>
+  </div>
+  <div id="queue-container"></div>
+  <div class="save-bar" id="save-bar" style="display:none">
+    <span class="save-count" id="save-count-text"></span>
+    <button class="btn btn-ghost" onclick="uploadQueue=[];renderUpload()">清除全部</button>
+    <button class="btn btn-accent" onclick="saveAll()">儲存所有商品</button>
+  </div>`;
+  document.getElementById('page-content').innerHTML = html;
+
+  const ua = document.getElementById('upload-area');
+  ua.addEventListener('dragover', e => { e.preventDefault(); ua.classList.add('drag-over'); });
+  ua.addEventListener('dragleave', () => ua.classList.remove('drag-over'));
+  ua.addEventListener('drop', e => { e.preventDefault(); ua.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+}
+
+async function handleFiles(files) {
+  const arr = Array.from(files);
+  for (const file of arr) {
+    const url = URL.createObjectURL(file);
+    const entry = { id: genId(), file, url, price: null, category: 'top_other', note: '', colors: [], sizes: [], analyzing: true };
+    uploadQueue.push(entry);
+  }
+  renderQueue();
+  for (const entry of uploadQueue.filter(e => e.analyzing)) {
+    await analyzeImage(entry);
+  }
+}
+
+function renderQueue() {
+  const container = document.getElementById('queue-container');
+  if (!container) return;
+  if (!uploadQueue.length) { container.innerHTML = ''; return; }
+
+  const saveBar = document.getElementById('save-bar');
+  if (saveBar) { saveBar.style.display = 'flex'; document.getElementById('save-count-text').textContent = `${uploadQueue.length} 件待儲存`; }
+
+  let html = `<div class="upload-queue">`;
+  uploadQueue.forEach(entry => {
+    html += `<div class="queue-card" id="qc-${entry.id}">
+      <div style="position:relative">
+        <img class="queue-img" src="${entry.url}" alt="" id="qimg-${entry.id}">
+        ${entry.analyzing ? `<div class="queue-analyzing"><div class="spinner"></div>AI 辨識中…</div>` : ''}
+        <button onclick="removeFromQueue('${entry.id}')" style="position:absolute;top:6px;left:6px;width:24px;height:24px;border-radius:50%;background:rgba(26,24,20,0.6);color:#fff;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0" aria-label="移除">✕</button>
+        <label style="position:absolute;bottom:8px;right:8px;font-size:10px;padding:4px 10px;border-radius:20px;background:rgba(26,24,20,0.6);color:#fff;cursor:pointer;border:1px solid rgba(255,255,255,0.2)">
+          🔄 換圖
+          <input type="file" accept="image/*" style="display:none" onchange="replaceQueuePhoto('${entry.id}',this.files[0])">
+        </label>
+      </div>
+      <div class="queue-body">
+        <div class="field-row">
+          <span class="field-label">價格</span>
+          <input type="number" class="field-input" value="${entry.price||''}" placeholder="輸入金額"
+            onchange="updateQueue('${entry.id}','price',parseInt(this.value)||null)">
+        </div>
+        <div class="field-row">
+          <span class="field-label">類別</span>
+          <select class="field-input" onchange="updateQueue('${entry.id}','category',this.value)">
+            ${Object.entries(CATS).map(([k,v])=>`<option value="${k}" ${entry.category===k?'selected':''}>${v.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field-row" style="align-items:flex-start">
+          <span class="field-label" style="padding-top:5px">特徵</span>
+          <input type="text" class="field-input" value="${entry.note||''}" placeholder="款式特徵…"
+            onchange="updateQueue('${entry.id}','note',this.value)">
+        </div>
+        <div style="margin-top:8px">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">顏色</div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <input type="text" class="field-input" placeholder="輸入顏色後按 Enter" id="color-input-${entry.id}"
+              style="font-size:11px"
+              onkeydown="addColorTag(event,'${entry.id}')">
+          </div>
+          <div class="tag-editor" id="color-tags-${entry.id}" style="margin-top:5px">
+            ${(entry.colors||[]).map(c=>`<span class="tag-chip selected" onclick="removeColorTag('${entry.id}','${c}',this)">${c} ✕</span>`).join('')}
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">附件</div>
+          <div style="display:flex;gap:10px">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="checkbox" ${(entry.accessories||[]).includes('含胸墊')?'checked':''} onchange="toggleAccessory('${entry.id}','含胸墊',this.checked)"> 含胸墊
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="checkbox" ${(entry.accessories||[]).includes('含皮帶')?'checked':''} onchange="toggleAccessory('${entry.id}','含皮帶',this.checked)"> 含皮帶
+            </label>
+          </div>
+        </div>
+          <div class="tag-editor">
+            ${SIZES_PRESET.map(s=>`<span class="tag-chip${(entry.sizes||[]).includes(s)?' selected':''}"
+              onclick="toggleTag('${entry.id}','sizes','${s}',this)">${s}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+function replaceQueuePhoto(id, file) {
+  if (!file) return;
+  const entry = uploadQueue.find(e => e.id === id);
+  if (!entry) return;
+  entry.file = file;
+  entry.url = URL.createObjectURL(file);
+  entry.cloudUrl = null; // reset so it re-uploads
+  const img = document.getElementById('qimg-' + id);
+  if (img) img.src = entry.url;
+}
+
+function addColorTag(event, id) {
+  if (event.key !== 'Enter') return;
+  const input = event.target;
+  const val = input.value.trim();
+  if (!val) return;
+  const entry = uploadQueue.find(e => e.id === id);
+  if (!entry) return;
+  if (!entry.colors) entry.colors = [];
+  if (!entry.colors.includes(val)) {
+    entry.colors.push(val);
+    const container = document.getElementById('color-tags-' + id);
+    if (container) {
+      const chip = document.createElement('span');
+      chip.className = 'tag-chip selected';
+      chip.textContent = val + ' ✕';
+      chip.onclick = () => removeColorTag(id, val, chip);
+      container.appendChild(chip);
+    }
+  }
+  input.value = '';
+}
+
+function removeColorTag(id, val, el) {
+  const entry = uploadQueue.find(e => e.id === id);
+  if (entry) entry.colors = (entry.colors||[]).filter(c => c !== val);
+  el.remove();
+}
+
+function removeFromQueue(id) {
+  uploadQueue = uploadQueue.filter(e => e.id !== id);
+  renderQueue();
+}
+
+function updateQueue(id, field, val) {
+  const entry = uploadQueue.find(e => e.id === id);
+  if (entry) entry[field] = val;
+}
+
+function toggleAccessory(id, val, checked) {
+  const entry = uploadQueue.find(e => e.id === id);
+  if (!entry) return;
+  if (!entry.accessories) entry.accessories = [];
+  if (checked) { if (!entry.accessories.includes(val)) entry.accessories.push(val); }
+  else entry.accessories = entry.accessories.filter(a => a !== val);
+}
+
+function toggleTag(id, field, val, el) {
+  const entry = uploadQueue.find(e => e.id === id);
+  if (!entry) return;
+  const arr = entry[field] || [];
+  const idx = arr.indexOf(val);
+  if (idx >= 0) arr.splice(idx, 1); else arr.push(val);
+  entry[field] = arr;
+  el.classList.toggle('selected');
+}
+
+async function analyzeImage(entry) {
+  try {
+    const url = await uploadToCloudinary(entry.file);
+    entry.cloudUrl = url;
+  } catch(e) {
+    console.warn('Cloudinary upload failed', e);
+    entry.cloudUrl = entry.url;
+  }
+
+  try {
+    const base64 = await toBase64(entry.file);
+    const mt = entry.file.type || 'image/jpeg';
+
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: base64,
+        mediaType: mt,
+        filename: entry.file.name
+      })
+    });
+    const parsed = await resp.json();
+    entry.price = parsed.price || null;
+    entry.category = parsed.category || 'top_other';
+    entry.colors = parsed.colors || [];
+    entry.note = parsed.note || '';
+  } catch(e) {
+    console.error('Analyze failed:', e);
+  }
+  entry.analyzing = false;
+  renderQueue();
+}
+
+function toBase64(file) {
+  return new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+async function saveAll() {
+  const ready = uploadQueue.filter(e => !e.analyzing);
+  ready.forEach(entry => {
+    db.items.push({
+      id: entry.id,
+      url: entry.cloudUrl || entry.url,
+      price: entry.price,
+      category: entry.category,
+      note: entry.note,
+      colors: entry.colors || [],
+      sizes: entry.sizes || [],
+      accessories: entry.accessories || [],
+      createdAt: Date.now()
+    });
+  });
+  await save();
+  uploadQueue = [];
+  navigate('home');
+}
+
+// ── Lookbook ──
+function renderLookbook() {
+  setTopbar('穿拍圖庫', '', `<button class="btn btn-accent" onclick="openLbUpload()">＋ 上傳穿拍</button>`);
+  if (!db.lookbook) db.lookbook = [];
+  const lb = db.lookbook;
+
+  let html = `
+    <input type="file" id="lb-file-input" multiple accept="image/*" style="display:none" onchange="handleLbFiles(this.files)">
+    <div class="section-header">
+      <div class="section-title">穿拍圖庫</div>
+      <div class="section-sub">${lb.length} 張</div>
+    </div>`;
+
+  if (!lb.length) {
+    html += `<div class="empty-state"><div class="empty-icon">🖼</div><div class="empty-text">還沒有穿拍照片<br><span style="cursor:pointer;color:var(--accent)" onclick="openLbUpload()">上傳第一張 →</span></div></div>`;
+    document.getElementById('page-content').innerHTML = html;
+    return;
+  }
+
+  html += `<div class="lookbook-grid">`;
+  lb.forEach(photo => {
+    const linked = (photo.linkedItems||[]).map(id => {
+      const item = db.items.find(i => i.id === id);
+      if (!item) return '';
+      const pc = getPriceColor(item.price);
+      return `<span class="lookbook-link-chip" style="border-color:${pc.bg}33;color:${pc.bg}">$${item.price||'?'} ${item.note||''}</span>`;
+    }).join('');
+    html += `<div class="lookbook-card" onclick="openLbModal('${photo.id}')">
+      <img class="lookbook-img" src="${photo.url}" alt="" loading="lazy">
+      <div class="lookbook-body">
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">${photo.note||'（無備注）'}</div>
+        <div class="lookbook-links">${linked || '<span style="font-size:10px;color:var(--text-muted)">尚未關聯商品</span>'}</div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  document.getElementById('page-content').innerHTML = html;
+}
+
+function openLbUpload() {
+  document.getElementById('lb-file-input')?.click();
+}
+
+async function handleLbFiles(files) {
+  const arr = Array.from(files);
+  showGlobalLoading(true);
+  for (const file of arr) {
+    try {
+      const url = await uploadToCloudinary(file);
+      const photo = { id: genId(), url, note: '', linkedItems: [], createdAt: Date.now() };
+      if (!db.lookbook) db.lookbook = [];
+      db.lookbook.push(photo);
+    } catch(e) { console.error('Lookbook upload failed', e); }
+  }
+  await save();
+  showGlobalLoading(false);
+  renderLookbook();
+}
+
+// ── Lookbook Modal ──
+let lbModalId = null;
+
+function openLbModal(id) {
+  const photo = (db.lookbook||[]).find(p => p.id === id);
+  if (!photo) return;
+  lbModalId = id;
+
+  const pickerHtml = db.items.map(item => {
+    const cat = CATS[item.category] || { icon: '📦' };
+    const pc = getPriceColor(item.price);
+    const sel = (photo.linkedItems||[]).includes(item.id);
+    return `<div class="lb-picker-item${sel?' selected':''}" onclick="lbToggleItem('${item.id}',this)" id="lbpick-${item.id}">
+      <div class="lb-picker-check">✓</div>
+      ${item.url ? `<img src="${item.url}" alt="">` : `<div style="aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;background:#eae6e0;font-size:20px">${cat.icon}</div>`}
+      <div class="lb-picker-label" style="color:${pc.bg||'var(--text-muted)'}">${item.price?'$'+item.price:'?'}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('modal-img').style.display = 'none';
+  document.getElementById('modal-body').innerHTML = `
+    <img class="lb-modal-img" src="${photo.url}" alt="">
+    <div style="padding:20px 24px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-family:var(--font-serif);font-size:16px">穿拍詳情</span>
+        <button class="modal-close" onclick="closeModal()" style="margin-left:auto">✕</button>
+      </div>
+
+      <div class="modal-section-label">備注</div>
+      <input type="text" class="field-input" value="${photo.note||''}" placeholder="這組搭配的說明…"
+        style="margin-bottom:16px" onchange="lbUpdateNote('${id}',this.value)">
+
+      <div class="modal-section-label" style="margin-bottom:8px">關聯商品 <span style="font-weight:300;text-transform:none;letter-spacing:0">(${(photo.linkedItems||[]).length} 件)</span></div>
+      ${db.items.length ? `<div class="lb-item-picker" id="lb-picker">${pickerHtml}</div>` : '<div style="font-size:12px;color:var(--text-muted)">還沒有商品，請先上傳商品</div>'}
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border);padding-top:14px;margin-top:16px">
+        <button class="btn btn-ghost" onclick="deleteLbPhoto('${id}')">刪除穿拍</button>
+      </div>
+    </div>`;
+
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function lbToggleItem(itemId, el) {
+  const photo = (db.lookbook||[]).find(p => p.id === lbModalId);
+  if (!photo) return;
+  if (!photo.linkedItems) photo.linkedItems = [];
+  const idx = photo.linkedItems.indexOf(itemId);
+  if (idx >= 0) photo.linkedItems.splice(idx, 1);
+  else photo.linkedItems.push(itemId);
+  el.classList.toggle('selected');
+  // update count label
+  const label = document.querySelector('#modal-body .modal-section-label span');
+  if (label) label.textContent = `(${photo.linkedItems.length} 件)`;
+  save();
+}
+
+function lbUpdateNote(id, val) {
+  const photo = (db.lookbook||[]).find(p => p.id === id);
+  if (photo) { photo.note = val; save(); }
+}
+
+async function deleteLbPhoto(id) {
+  if (!confirm('確定要刪除這張穿拍嗎？')) return;
+  db.lookbook = (db.lookbook||[]).filter(p => p.id !== id);
+  await save();
+  document.getElementById('modal').style.display = 'none';
+  renderLookbook();
+}
+
+// ── Memo ──
+function renderMemo() {
+  setTopbar('員工備忘錄', '');
+  if (!db.memos) db.memos = [];
+
+  let html = `<div class="section-header"><div class="section-title">備忘錄</div><div class="section-sub">員工共用筆記</div></div>`;
+  html += `<div class="memo-grid">`;
+  db.memos.forEach((memo, idx) => {
+    html += `<div class="memo-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <input type="text" value="${memo.title}" class="field-input" style="font-family:var(--font-serif);font-size:14px;border:none;background:transparent;padding:0;font-weight:400"
+          onchange="updateMemo(${idx},'title',this.value)">
+        <span style="cursor:pointer;font-size:12px;color:var(--text-muted)" onclick="deleteMemo(${idx})">✕</span>
+      </div>
+      <textarea onchange="updateMemo(${idx},'content',this.value)">${memo.content}</textarea>
+    </div>`;
+  });
+  html += `<div class="add-memo-btn" onclick="addMemo()">＋ 新增備忘錄</div>`;
+  html += `</div>`;
+  document.getElementById('page-content').innerHTML = html;
+}
+
+function addMemo() {
+  if (!db.memos) db.memos = [];
+  db.memos.push({ title: '新備忘錄', content: '' });
+  save(); renderMemo();
+}
+function updateMemo(idx, field, val) {
+  db.memos[idx][field] = val; save();
+}
+function deleteMemo(idx) {
+  db.memos.splice(idx, 1); save(); renderMemo();
+}
+
+// ── Modal ──
+function openModal(id) {
+  const item = db.items.find(i => i.id === id);
+  if (!item) return;
+  const cat = CATS[item.category] || { icon: '📦', name: '其他' };
+  const pc = getPriceColor(item.price);
+
+  // Image panel
+  const modalImg = document.getElementById('modal-img');
+  const replaceBar = document.getElementById('modal-replace-bar');
+  if (item.url) {
+    modalImg.src = item.url;
+    modalImg.style.display = 'block';
+  } else {
+    modalImg.style.display = 'none';
+  }
+  replaceBar.style.display = 'flex';
+  document.getElementById('modal-photo-input').onchange = (e) => replaceItemPhoto(id, e.target.files[0]);
+
+  const sizesHtml = SIZES_PRESET.map(s =>
+    `<span class="tag-chip${(item.sizes||[]).includes(s)?' selected':''}" onclick="modalToggleSize('${id}','${s}',this)">${s}</span>`
+  ).join('');
+
+  const colTagsHtml = (item.colors||[]).map(c =>
+    `<span class="tag-chip selected" onclick="modalRemoveColor('${id}','${c}',this)">${c} ✕</span>`
+  ).join('');
+
+  const catOptions = Object.entries(CATS).map(([k,v]) =>
+    `<option value="${k}" ${item.category===k?'selected':''}>${v.icon} ${v.name}</option>`
+  ).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span style="font-family:var(--font-serif);font-size:20px;color:${item.price ? pc.bg : 'var(--text-muted)'}">${item.price ? '$'+item.price : '未標價'}</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-section-label">價格</div>
+    <input type="number" class="field-input" value="${item.price||''}" placeholder="輸入金額"
+      style="margin-bottom:14px;width:120px"
+      onchange="modalUpdate('${id}','price',parseInt(this.value)||null)">
+
+    <div class="modal-section-label">類別</div>
+    <select class="field-input" style="margin-bottom:14px;width:160px"
+      onchange="modalUpdate('${id}','category',this.value)">
+      ${catOptions}
+    </select>
+
+    <div class="modal-section-label">特徵</div>
+    <input type="text" class="field-input" value="${item.note||''}" placeholder="款式特徵…"
+      style="margin-bottom:14px"
+      onchange="modalUpdate('${id}','note',this.value)">
+
+    <div class="modal-section-label">附件</div>
+    <div style="display:flex;gap:14px;margin-bottom:14px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
+        <input type="checkbox" ${(item.accessories||[]).includes('含胸墊')?'checked':''} onchange="modalToggleAccessory('${id}','含胸墊',this.checked)"> 含胸墊
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
+        <input type="checkbox" ${(item.accessories||[]).includes('含皮帶')?'checked':''} onchange="modalToggleAccessory('${id}','含皮帶',this.checked)"> 含皮帶
+      </label>
+    </div>
+
+    <div class="modal-section-label">尺寸</div>
+    <div class="tag-editor" style="margin-bottom:14px">${sizesHtml}</div>
+
+    <div class="modal-section-label">顏色</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+      <input type="text" class="field-input" placeholder="輸入後按 Enter"
+        style="font-size:12px;width:160px"
+        onkeydown="modalAddColor(event,'${id}')">
+    </div>
+    <div class="tag-editor" id="modal-color-tags" style="margin-bottom:18px">${colTagsHtml}</div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-ghost" onclick="deleteItem('${id}')">刪除商品</button>
+    </div>`;
+
+  // Lookbook section
+  const linkedPhotos = (db.lookbook||[]).filter(p => (p.linkedItems||[]).includes(id));
+  if (linkedPhotos.length) {
+    const lbSection = document.createElement('div');
+    lbSection.className = 'lb-appended-section';
+    lbSection.innerHTML = `<div class="modal-section-label" style="margin-bottom:8px">出現在穿拍 (${linkedPhotos.length})</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${linkedPhotos.map(p => `<img src="${p.url}" onclick="closeModal();setTimeout(()=>openLbModal('${p.id}'),100)"
+          style="width:64px;height:86px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border);transition:transform 0.15s"
+          onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''" alt="">`).join('')}
+      </div>`;
+    document.getElementById('modal-body').appendChild(lbSection);
+  }
+
+  document.getElementById('modal').style.display = 'flex';
+}
+
+async function replaceItemPhoto(id, file) {
+  if (!file) return;
+  const btn = document.querySelector('#modal-replace-bar button');
+  if (btn) { btn.textContent = '上傳中…'; btn.disabled = true; }
+  try {
+    const newUrl = await uploadToCloudinary(file);
+    const item = db.items.find(i => i.id === id);
+    if (item) {
+      item.url = newUrl;
+      await save();
+      document.getElementById('modal-img').src = newUrl;
+      document.getElementById('modal-img').style.display = 'block';
+    }
+  } catch(e) {
+    alert('上傳失敗，請再試一次');
+  }
+  if (btn) { btn.textContent = '🔄 更換照片'; btn.disabled = false; }
+}
+
+function modalUpdate(id, field, val) {
+  const item = db.items.find(i => i.id === id);
+  if (!item) return;
+  item[field] = val;
+  save();
+  // refresh price color in header if price changed
+  if (field === 'price') {
+    const pc = getPriceColor(val);
+    const priceEl = document.querySelector('#modal-body span[style*="font-serif"]');
+    if (priceEl) { priceEl.textContent = val ? '$'+val : '未標價'; priceEl.style.color = val ? pc.bg : 'var(--text-muted)'; }
+  }
+}
+
+function modalToggleAccessory(id, val, checked) {
+  const item = db.items.find(i => i.id === id);
+  if (!item) return;
+  if (!item.accessories) item.accessories = [];
+  if (checked) { if (!item.accessories.includes(val)) item.accessories.push(val); }
+  else item.accessories = item.accessories.filter(a => a !== val);
+  save();
+}
+
+function modalToggleSize(id, val, el) {
+  const item = db.items.find(i => i.id === id);
+  if (!item) return;
+  const arr = item.sizes || [];
+  const idx = arr.indexOf(val);
+  if (idx >= 0) arr.splice(idx, 1); else arr.push(val);
+  item.sizes = arr;
+  save();
+  el.classList.toggle('selected');
+}
+
+function modalAddColor(event, id) {
+  if (event.key !== 'Enter') return;
+  const input = event.target;
+  const val = input.value.trim();
+  if (!val) return;
+  const item = db.items.find(i => i.id === id);
+  if (!item) return;
+  if (!item.colors) item.colors = [];
+  if (!item.colors.includes(val)) {
+    item.colors.push(val);
+    save();
+    const container = document.getElementById('modal-color-tags');
+    if (container) {
+      const chip = document.createElement('span');
+      chip.className = 'tag-chip selected';
+      chip.textContent = val + ' ✕';
+      chip.onclick = () => modalRemoveColor(id, val, chip);
+      container.appendChild(chip);
+    }
+  }
+  input.value = '';
+}
+
+function modalRemoveColor(id, val, el) {
+  const item = db.items.find(i => i.id === id);
+  if (item) { item.colors = (item.colors||[]).filter(c => c !== val); save(); }
+  el.remove();
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal')) {
+    document.getElementById('modal').style.display = 'none';
+    document.getElementById('modal-replace-bar').style.display = 'none';
+    document.querySelectorAll('.lb-appended-section').forEach(el => el.remove());
+    lbModalId = null;
+    renderPage();
+  }
+}
+
+function deleteItem(id) {
+  if (!confirm('確定要刪除這件商品嗎？')) return;
+  db.items = db.items.filter(i => i.id !== id);
+  save();
+  document.getElementById('modal').style.display = 'none';
+  renderPage();
+}
+
+// ── Category Management ──
+const CAT_ICONS = ['👕','👔','🧥','🧣','👖','👗','👙','🩱','🩲','🧤','🧦','👒','🎒','📦','🏷','✨','🌸','🪡'];
+
+function renderCatMgmt() {
+  setTopbar('分類管理', '');
+  let html = `
+    <div class="section-header">
+      <div class="section-title">分類管理</div>
+      <div class="section-sub">新增、修改、刪除分類</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:520px" id="cat-list">`;
+
+  Object.entries(CATS).forEach(([key, cat]) => {
+    const count = db.items.filter(i => i.category === key).length;
+    html += `<div class="cat-mgmt-row" id="catrow-${key}">
+      <div class="cat-mgmt-icon-btn" onclick="cycleCatIcon('${key}')" title="點擊換圖示">${cat.icon}</div>
+      <input class="field-input cat-mgmt-name" value="${cat.name}" onchange="updateCatName('${key}',this.value)" style="flex:1">
+      <span style="font-size:11px;color:var(--text-muted);min-width:36px;text-align:right">${count} 件</span>
+      <button class="cat-mgmt-del" onclick="deleteCat('${key}')" ${count > 0 ? 'disabled title="還有商品無法刪除"' : 'title="刪除分類"'}>✕</button>
+    </div>`;
+  });
+
+  html += `</div>
+    <div style="margin-top:16px;max-width:520px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">新增分類</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="new-cat-icon" style="font-size:22px;cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-card)" onclick="cycleNewIcon()" title="點擊換圖示">📦</span>
+        <input type="text" class="field-input" id="new-cat-name" placeholder="輸入分類名稱" style="flex:1">
+        <button class="btn btn-accent" onclick="addCat()">新增</button>
+      </div>
+    </div>
+    <div style="margin-top:20px;max-width:520px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px">
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.8">
+        • 有商品的分類無法刪除，請先將商品移到其他分類<br>
+        • 點圖示可以切換 emoji<br>
+        • 修改名稱後即時儲存
+      </div>
+    </div>`;
+
+  document.getElementById('page-content').innerHTML = html;
+}
+
+let newIconIdx = 0;
+function cycleNewIcon() {
+  newIconIdx = (newIconIdx + 1) % CAT_ICONS.length;
+  document.getElementById('new-cat-icon').textContent = CAT_ICONS[newIconIdx];
+}
+
+function cycleCatIcon(key) {
+  const icons = CAT_ICONS;
+  const cur = CATS[key].icon;
+  const idx = icons.indexOf(cur);
+  CATS[key].icon = icons[(idx + 1) % icons.length];
+  saveCats();
+  renderCatMgmt();
+}
+
+function updateCatName(key, val) {
+  if (!val.trim()) return;
+  CATS[key].name = val.trim();
+  saveCats();
+}
+
+function deleteCat(key) {
+  const count = db.items.filter(i => i.category === key).length;
+  if (count > 0) return;
+  if (!confirm(`確定要刪除「${CATS[key].name}」分類嗎？`)) return;
+  delete CATS[key];
+  saveCats();
+  renderCatMgmt();
+}
+
+function addCat() {
+  const nameEl = document.getElementById('new-cat-name');
+  const iconEl = document.getElementById('new-cat-icon');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const key = 'cat_' + Date.now();
+  CATS[key] = { name, icon: iconEl.textContent };
+  saveCats();
+  nameEl.value = '';
+  newIconIdx = 0;
+  iconEl.textContent = '📦';
+  renderCatMgmt();
+}
+
+
+function clearAllData() {
+  if (confirm('確定要清除所有商品資料嗎？此動作無法復原。')) {
+    localStorage.removeItem('clothing_db');
+    db = { items: [], memos: [] };
+    navigate('home');
+  }
+}
+
+// ── Init ──
+loadFromCloud();
+</script>
+</body>
+</html>
