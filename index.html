@@ -1103,67 +1103,117 @@ function renderQueue() {
   const saveBar = document.getElementById('save-bar');
   if (saveBar) { saveBar.style.display = 'flex'; document.getElementById('save-count-text').textContent = `${uploadQueue.length} 件待儲存`; }
 
-  let html = `<div class="upload-queue">`;
+  // First render
+  if (!container.querySelector('.upload-queue')) {
+    const grid = document.createElement('div');
+    grid.className = 'upload-queue';
+    uploadQueue.forEach(entry => {
+      grid.appendChild(createQueueCard(entry));
+    });
+    container.appendChild(grid);
+    return;
+  }
+
+  // Update: add new, remove deleted, update analyzing state
+  const grid = container.querySelector('.upload-queue');
+  const existingIds = new Set([...grid.querySelectorAll('.queue-card')].map(el => el.id.replace('qc-', '')));
+  const currentIds = new Set(uploadQueue.map(e => e.id));
+
+  // Remove deleted
+  existingIds.forEach(id => {
+    if (!currentIds.has(id)) grid.getElementById?.(`qc-${id}`)?.remove();
+  });
+
   uploadQueue.forEach(entry => {
-    html += `<div class="queue-card" id="qc-${entry.id}">
-      <div style="position:relative">
-        <img class="queue-img" src="${entry.url}" alt="" id="qimg-${entry.id}">
-        ${entry.analyzing ? `<div class="queue-analyzing"><div class="spinner"></div>AI 辨識中…</div>` : ''}
-        <button onclick="removeFromQueue('${entry.id}')" style="position:absolute;top:6px;left:6px;width:24px;height:24px;border-radius:50%;background:rgba(26,24,20,0.6);color:#fff;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0" aria-label="移除">✕</button>
-        <label style="position:absolute;bottom:8px;right:8px;font-size:10px;padding:4px 10px;border-radius:20px;background:rgba(26,24,20,0.6);color:#fff;cursor:pointer;border:1px solid rgba(255,255,255,0.2)">
-          🔄 換圖
-          <input type="file" accept="image/*" style="display:none" onchange="replaceQueuePhoto('${entry.id}',this.files[0])">
-        </label>
+    const existing = document.getElementById(`qc-${entry.id}`);
+    if (!existing) {
+      grid.appendChild(createQueueCard(entry));
+    } else {
+      // Only update analyzing overlay
+      const overlay = existing.querySelector('.queue-analyzing');
+      if (!entry.analyzing && overlay) overlay.remove();
+      // Fill in AI results if fields are empty
+      if (entry.price) {
+        const priceInput = existing.querySelector('input[type="number"]');
+        if (priceInput && !priceInput.value) priceInput.value = entry.price;
+      }
+      if (entry.note) {
+        const noteInput = existing.querySelector('input[type="text"]');
+        if (noteInput && !noteInput.value) noteInput.value = entry.note;
+      }
+      if (entry.category) {
+        const sel = existing.querySelector('select');
+        if (sel) sel.value = entry.category;
+      }
+      if (entry.colors && entry.colors.length) {
+        const colorTags = document.getElementById(`color-tags-${entry.id}`);
+        if (colorTags && !colorTags.children.length) {
+          entry.colors.forEach(c => {
+            const chip = document.createElement('span');
+            chip.className = 'tag-chip selected';
+            chip.textContent = c + ' ✕';
+            chip.onclick = () => removeColorTag(entry.id, c, chip);
+            colorTags.appendChild(chip);
+          });
+        }
+      }
+    }
+  });
+}
+
+function createQueueCard(entry) {
+  const div = document.createElement('div');
+  div.className = 'queue-card';
+  div.id = `qc-${entry.id}`;
+
+  const sizeTagsHtml = SIZES_PRESET.map(s =>
+    `<span class="tag-chip${(entry.sizes||[]).includes(s)?' selected':''}" onclick="toggleTag('${entry.id}','sizes','${s}',this)">${s}</span>`
+  ).join('');
+
+  div.innerHTML = `
+    <div style="position:relative;aspect-ratio:3/4;overflow:hidden;background:#eae6e0">
+      <img src="${entry.url}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      ${entry.analyzing ? `<div class="queue-analyzing"><div class="spinner"></div>AI 辨識中…</div>` : ''}
+      <button onclick="removeFromQueue('${entry.id}')" style="position:absolute;top:6px;left:6px;width:24px;height:24px;border-radius:50%;background:rgba(26,24,20,0.6);color:#fff;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0" aria-label="移除">✕</button>
+      <label style="position:absolute;bottom:8px;right:8px;font-size:10px;padding:4px 10px;border-radius:20px;background:rgba(26,24,20,0.6);color:#fff;cursor:pointer;border:1px solid rgba(255,255,255,0.2)">🔄 換圖<input type="file" accept="image/*" style="display:none" onchange="replaceQueuePhoto('${entry.id}',this.files[0])"></label>
+    </div>
+    <div class="queue-body">
+      <div class="field-row">
+        <span class="field-label">價格</span>
+        <input type="number" class="field-input" value="${entry.price||''}" placeholder="輸入金額" onchange="updateQueue('${entry.id}','price',parseInt(this.value)||null)">
       </div>
-      <div class="queue-body">
-        <div class="field-row">
-          <span class="field-label">價格</span>
-          <input type="number" class="field-input" value="${entry.price||''}" placeholder="輸入金額"
-            onchange="updateQueue('${entry.id}','price',parseInt(this.value)||null)">
+      <div class="field-row">
+        <span class="field-label">類別</span>
+        <select class="field-input" onchange="updateQueue('${entry.id}','category',this.value)">
+          ${Object.entries(CATS).map(([k,v])=>`<option value="${k}" ${entry.category===k?'selected':''}>${v.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-row" style="align-items:flex-start">
+        <span class="field-label" style="padding-top:5px">特徵</span>
+        <input type="text" class="field-input" value="${entry.note||''}" placeholder="款式特徵…" onchange="updateQueue('${entry.id}','note',this.value)">
+      </div>
+      <div style="margin-top:8px">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">附件</div>
+        <div style="display:flex;gap:10px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+            <input type="checkbox" ${(entry.accessories||[]).includes('含胸墊')?'checked':''} onchange="toggleAccessory('${entry.id}','含胸墊',this.checked)"> 含胸墊
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+            <input type="checkbox" ${(entry.accessories||[]).includes('含皮帶')?'checked':''} onchange="toggleAccessory('${entry.id}','含皮帶',this.checked)"> 含皮帶
+          </label>
         </div>
-        <div class="field-row">
-          <span class="field-label">類別</span>
-          <select class="field-input" onchange="updateQueue('${entry.id}','category',this.value)">
-            ${Object.entries(CATS).map(([k,v])=>`<option value="${k}" ${entry.category===k?'selected':''}>${v.name}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field-row" style="align-items:flex-start">
-          <span class="field-label" style="padding-top:5px">特徵</span>
-          <input type="text" class="field-input" value="${entry.note||''}" placeholder="款式特徵…"
-            onchange="updateQueue('${entry.id}','note',this.value)">
-        </div>
-        <div style="margin-top:8px">
-          <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">顏色</div>
-          <div style="display:flex;gap:4px;align-items:center">
-            <input type="text" class="field-input" placeholder="輸入顏色後按 Enter" id="color-input-${entry.id}"
-              style="font-size:11px"
-              onkeydown="addColorTag(event,'${entry.id}')">
-          </div>
-          <div class="tag-editor" id="color-tags-${entry.id}" style="margin-top:5px">
-            ${(entry.colors||[]).map(c=>`<span class="tag-chip selected" onclick="removeColorTag('${entry.id}','${c}',this)">${c} ✕</span>`).join('')}
-          </div>
-        </div>
-        <div style="margin-top:8px">
-          <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">附件</div>
-          <div style="display:flex;gap:10px">
-            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">
-              <input type="checkbox" ${(entry.accessories||[]).includes('含胸墊')?'checked':''} onchange="toggleAccessory('${entry.id}','含胸墊',this.checked)"> 含胸墊
-            </label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">
-              <input type="checkbox" ${(entry.accessories||[]).includes('含皮帶')?'checked':''} onchange="toggleAccessory('${entry.id}','含皮帶',this.checked)"> 含皮帶
-            </label>
-          </div>
-        </div>
-          <div class="tag-editor">
-            ${SIZES_PRESET.map(s=>`<span class="tag-chip${(entry.sizes||[]).includes(s)?' selected':''}"
-              onclick="toggleTag('${entry.id}','sizes','${s}',this)">${s}</span>`).join('')}
-          </div>
-        </div>
+      </div>
+      <div style="margin-top:8px">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">顏色</div>
+        <input type="text" class="field-input" placeholder="輸入後按 Enter" id="color-input-${entry.id}" style="font-size:11px" onkeydown="addColorTag(event,'${entry.id}')">
+        <div class="tag-editor" id="color-tags-${entry.id}" style="margin-top:5px"></div>
+      </div>
+      <div style="margin-top:8px">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">尺寸</div>
+        <div class="tag-editor">${sizeTagsHtml}</div>
       </div>
     </div>`;
-  });
-  html += `</div>`;
-  container.innerHTML = html;
+  return div;
 }
 
 function replaceQueuePhoto(id, file) {
