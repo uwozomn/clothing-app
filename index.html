@@ -1047,7 +1047,7 @@ function renderHome() {
         <span id="analysis-toggle-icon" style="margin-left:auto;font-size:12px;color:var(--text-muted)">${cache ? '▼' : '▼'}</span>
       </div>
       <div id="analysis-panel" style="display:${cache ? 'block' : 'none'};border-top:1px solid var(--border);padding:16px">
-        ${cache ? `<div id="analysis-content">${cache.html}</div>
+        ${cache ? `<div id="analysis-content">${renderAnalysisText(cache.text)}</div>
           <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
             <span style="font-size:11px;color:var(--text-muted)">上次分析：${cache.time}</span>
             <button class="btn btn-ghost" onclick="runAnalysis('${homeFilter}')" style="font-size:11px;padding:4px 10px">重新分析</button>
@@ -1139,6 +1139,30 @@ function toggleAnalysisPanel() {
   if (icon) icon.textContent = isOpen ? '▼' : '▲';
 }
 
+function renderAnalysisText(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  return lines.map(line => {
+    const match = line.match(/\$(\d+)\s*【(.+?)】\s*[—–-]\s*(.+)/);
+    if (match) {
+      const pc = getPriceColor(parseInt(match[1]));
+      return `<div style="display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="background:${pc.bg};color:#fff;font-size:12px;padding:2px 10px;border-radius:4px;flex-shrink:0;min-width:52px;text-align:center">$${match[1]}</span>
+        <span style="font-size:12px;font-weight:500;color:${pc.bg};flex-shrink:0">${match[2]}</span>
+        <span style="font-size:13px;color:var(--text-secondary)">${match[3]}</span>
+      </div>`;
+    }
+    const simple = line.match(/\$(\d+)\s*[—–-]\s*(.+)/);
+    if (simple) {
+      const pc = getPriceColor(parseInt(simple[1]));
+      return `<div style="display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="background:${pc.bg};color:#fff;font-size:12px;padding:2px 10px;border-radius:4px;flex-shrink:0;min-width:52px;text-align:center">$${simple[1]}</span>
+        <span style="font-size:13px;color:var(--text-secondary)">${simple[2]}</span>
+      </div>`;
+    }
+    return `<div style="font-size:13px;color:var(--text-secondary);padding:4px 0">${line}</div>`;
+  }).join('');
+}
+
 async function runAnalysis(catKey) {
   const cat = CATS[catKey];
   const catItems = db.items.filter(i => i.category === catKey);
@@ -1181,33 +1205,11 @@ ${summary}
     const data = await resp.json();
     const text = data.result || data.note || '';
 
-    // Format the result as HTML
-    const lines = text.trim().split('\n').filter(l => l.trim());
-    const resultHtml = lines.map(line => {
-      const match = line.match(/\$(\d+)\s*【(.+?)】\s*[—–-]\s*(.+)/);
-      if (match) {
-        const pc = getPriceColor(parseInt(match[1]));
-        return `<div style="display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-          <span style="background:${pc.bg};color:#fff;font-size:12px;padding:2px 10px;border-radius:4px;flex-shrink:0;min-width:52px;text-align:center">$${match[1]}</span>
-          <span style="font-size:12px;font-weight:500;color:${pc.bg};flex-shrink:0">${match[2]}</span>
-          <span style="font-size:13px;color:var(--text-secondary)">${match[3]}</span>
-        </div>`;
-      }
-      // Fallback for lines without title format
-      const simple = line.match(/\$(\d+)\s*[—–-]\s*(.+)/);
-      if (simple) {
-        const pc = getPriceColor(parseInt(simple[1]));
-        return `<div style="display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-          <span style="background:${pc.bg};color:#fff;font-size:12px;padding:2px 10px;border-radius:4px;flex-shrink:0;min-width:52px;text-align:center">$${simple[1]}</span>
-          <span style="font-size:13px;color:var(--text-secondary)">${simple[2]}</span>
-        </div>`;
-      }
-      return `<div style="font-size:13px;color:var(--text-secondary);padding:4px 0">${line}</div>`;
-    }).join('');
+    const resultHtml = renderAnalysisText(text);
 
     const dataHash = catItems.map(i => `${i.price}${i.note}${(i.colors||[]).join('')}`).join('|');
     const now = new Date().toLocaleString('zh-TW', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
-    analysisCache[catKey] = { html: resultHtml, hash: dataHash, time: now };
+    analysisCache[catKey] = { text: text, hash: dataHash, time: now };
     localStorage.setItem('analysis_cache', JSON.stringify(analysisCache));
 
     if (contentEl) {
