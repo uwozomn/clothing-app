@@ -1223,6 +1223,40 @@ function renderUpload() {
     <div class="upload-text">點此選擇照片，或將照片拖曳到這裡</div>
     <div class="upload-sub">AI 會自動辨識紅字標價與款式類型，可以一次上傳多張</div>
   </div>
+
+  <div id="batch-apply-panel" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span style="font-size:13px;font-weight:500;color:var(--text-primary)">套用到全部</span>
+      <span style="font-size:11px;color:var(--text-muted)">顏色和特徵請個別填寫</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">分類</div>
+        <select class="field-input" id="batch-cat" style="font-size:12px">
+          ${Object.entries(CATS).map(([k,v])=>`<option value="${k}">${v.icon} ${v.name}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">價格</div>
+        <input type="number" class="field-input" id="batch-price" placeholder="留空不套用" style="font-size:12px;width:110px">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">尺寸</div>
+        <div style="display:flex;gap:4px" id="batch-size-tags">
+          ${SIZES_PRESET.map(s=>`<span class="tag-chip" onclick="this.classList.toggle('selected')" data-size="${s}">${s}</span>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">附件</div>
+        <div style="display:flex;gap:8px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="batch-acc-pad"> 含胸墊</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="batch-acc-belt"> 含皮帶</label>
+        </div>
+      </div>
+      <button class="btn btn-accent" onclick="applyBatchToQueue()" style="font-size:12px">套用到全部</button>
+    </div>
+  </div>
+
   <div id="queue-container"></div>
   <div class="save-bar" id="save-bar" style="display:none">
     <span class="save-count" id="save-count-text"></span>
@@ -1235,6 +1269,37 @@ function renderUpload() {
   ua.addEventListener('dragover', e => { e.preventDefault(); ua.classList.add('drag-over'); });
   ua.addEventListener('dragleave', () => ua.classList.remove('drag-over'));
   ua.addEventListener('drop', e => { e.preventDefault(); ua.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+}
+
+function applyBatchToQueue() {
+  const cat = document.getElementById('batch-cat')?.value;
+  const price = parseInt(document.getElementById('batch-price')?.value) || null;
+  const sizes = [...document.querySelectorAll('#batch-size-tags .tag-chip.selected')].map(el => el.dataset.size);
+  const accessories = [];
+  if (document.getElementById('batch-acc-pad')?.checked) accessories.push('含胸墊');
+  if (document.getElementById('batch-acc-belt')?.checked) accessories.push('含皮帶');
+
+  uploadQueue.forEach(entry => {
+    if (cat) entry.category = cat;
+    if (price) entry.price = price;
+    if (sizes.length) entry.sizes = [...sizes];
+    if (accessories.length) entry.accessories = [...accessories];
+  });
+
+  // Re-render all cards to reflect changes
+  const grid = document.querySelector('.upload-queue');
+  if (grid) {
+    grid.innerHTML = '';
+    uploadQueue.forEach(entry => grid.appendChild(createQueueCard(entry)));
+  }
+
+  // Flash feedback
+  const btn = document.querySelector('#batch-apply-panel .btn-accent');
+  if (btn) {
+    btn.textContent = '✓ 已套用';
+    btn.style.background = '#7b9e87';
+    setTimeout(() => { btn.textContent = '套用到全部'; btn.style.background = ''; }, 1500);
+  }
 }
 
 async function handleFiles(files) {
@@ -1257,6 +1322,9 @@ function renderQueue() {
 
   const saveBar = document.getElementById('save-bar');
   if (saveBar) { saveBar.style.display = 'flex'; document.getElementById('save-count-text').textContent = `${uploadQueue.length} 件待儲存`; }
+
+  const batchPanel = document.getElementById('batch-apply-panel');
+  if (batchPanel) batchPanel.style.display = 'block';
 
   // First render
   if (!container.querySelector('.upload-queue')) {
