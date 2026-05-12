@@ -245,6 +245,13 @@ body {
   transition: color 0.15s;
 }
 .back-btn:hover { color: var(--text-primary); }
+/* ── Items grid ── */
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
 .board-scroll {
   display: flex;
   gap: 16px;
@@ -679,6 +686,7 @@ select.field-input { cursor: pointer; }
   .price-col { width: 160px; }
 
   .overview-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .items-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   .lookbook-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .upload-queue { grid-template-columns: 1fr; }
 
@@ -992,84 +1000,40 @@ function renderHome() {
     return;
   }
 
-  // Build fixed $50-interval price columns (350~900) + 未標價
-  const PRICE_COLS = [];
-  for (let p = 350; p <= 900; p += 50) PRICE_COLS.push(p);
-
-  // Also include any prices outside the fixed range
-  const allPrices = [...new Set(filtered.map(i => i.price).filter(Boolean))].sort((a,b)=>a-b);
-  allPrices.forEach(p => { if (!PRICE_COLS.includes(p)) PRICE_COLS.push(p); });
-  PRICE_COLS.sort((a,b)=>a-b);
-
-  const unpricedItems = filtered.filter(i => !i.price);
-
-  html += `<div class="board-scroll">`;
-
-  PRICE_COLS.forEach(price => {
-    const colItems = filtered.filter(i => i.price === price);
-    const pc = getPriceColor(price);
-    html += `<div class="price-col">
-      <div class="price-col-header">
-        <span class="price-label" style="color:${pc.bg}">$${price}</span>
-        <span class="price-label-count">${colItems.length || ''}</span>
-        <div class="price-divider"></div>
-      </div>`;
-    if (!colItems.length) {
-      html += `<div style="height:60px;border:1.5px dashed ${pc.bg}33;border-radius:8px;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:${pc.bg}88">無商品</span></div>`;
-    } else {
-      colItems.forEach(item => {
-        const cat = CATS[item.category];
-        const colorsStr = (item.colors||[]).map(c=>`<span class="item-tag">${c}</span>`).join('');
-        const sizesStr  = (item.sizes||[]).map(s=>`<span class="item-tag">${s}</span>`).join('');
-        html += `<div class="item-card" onclick="openModal('${item.id}')">
-          <div class="item-price-banner" style="background:${pc.bg};color:${pc.text}">$${price}</div>
-          <div style="background:${pc.bg}18;padding:3px 12px;font-size:10px;color:${pc.bg};letter-spacing:0.04em">${cat.icon} ${cat.name}</div>
-          <div class="item-img-wrap">
-            ${item.url ? `<img src="${item.url}" alt="" loading="lazy">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#b0aa9f;font-size:28px">${cat.icon}</div>`}
-          </div>
-          <div class="item-body">
-            <div class="item-attr-row">
-              <span class="item-attr-label">特徵</span>
-              <span class="item-attr-val">${item.note || '—'}</span>
-            </div>
-            ${sizesStr ? `<div class="item-attr-row"><span class="item-attr-label">Size</span><div class="item-tags">${sizesStr}</div></div>` : ''}
-            ${colorsStr ? `<div class="item-attr-row"><span class="item-attr-label">Color</span><div class="item-tags">${colorsStr}</div></div>` : ''}
-          </div>
-        </div>`;
-      });
-    }
-    html += `</div>`;
+  // Sort all filtered items by price (nulls last)
+  const sortedItems = [...filtered].sort((a, b) => {
+    if (!a.price && !b.price) return 0;
+    if (!a.price) return 1;
+    if (!b.price) return -1;
+    return a.price - b.price;
   });
 
-  // 未標價欄
-  if (unpricedItems.length) {
-    html += `<div class="price-col">
-      <div class="price-col-header">
-        <span class="price-label" style="color:var(--text-muted)">未標價</span>
-        <span class="price-label-count">${unpricedItems.length}</span>
-        <div class="price-divider"></div>
-      </div>`;
-    unpricedItems.forEach(item => {
-      const cat = CATS[item.category];
-      const colorsStr = (item.colors||[]).map(c=>`<span class="item-tag">${c}</span>`).join('');
-      const sizesStr  = (item.sizes||[]).map(s=>`<span class="item-tag">${s}</span>`).join('');
-      html += `<div class="item-card" onclick="openModal('${item.id}')">
-        <div class="item-price-banner" style="background:var(--text-muted)">?</div>
-        <div style="background:rgba(0,0,0,0.04);padding:3px 12px;font-size:10px;color:var(--text-muted);letter-spacing:0.04em">${cat.icon} ${cat.name}</div>
-        <div class="item-img-wrap">
-          ${item.url ? `<img src="${item.url}" alt="" loading="lazy">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#b0aa9f;font-size:28px">${cat.icon}</div>`}
+  html += `<div class="items-grid">`;
+  sortedItems.forEach(item => {
+    const cat = CATS[item.category] || { icon: '📦', name: '其他' };
+    const pc = getPriceColor(item.price);
+    const colorsStr = (item.colors||[]).map(c=>`<span class="item-tag">${c}</span>`).join('');
+    const sizesStr  = (item.sizes||[]).map(s=>`<span class="item-tag">${s}</span>`).join('');
+    const accStr    = (item.accessories||[]).map(a=>`<span class="item-tag" style="border-color:var(--accent);color:var(--accent)">${a}</span>`).join('');
+    html += `<div class="item-card" onclick="openModal('${item.id}')">
+      <div class="item-price-banner" style="background:${item.price ? pc.bg : 'var(--text-muted)'};color:${pc.text}">${item.price ? '$'+item.price : '?'}</div>
+      <div style="background:${item.price ? pc.bg+'18' : 'rgba(0,0,0,0.04)'};padding:3px 12px;font-size:10px;color:${item.price ? pc.bg : 'var(--text-muted)'};letter-spacing:0.04em">${cat.icon} ${cat.name}</div>
+      <div class="item-img-wrap">
+        ${item.url ? `<img src="${item.url}" alt="" loading="lazy">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#b0aa9f;font-size:28px">${cat.icon}</div>`}
+      </div>
+      <div class="item-body">
+        <div class="item-attr-row">
+          <span class="item-attr-label">特徵</span>
+          <span class="item-attr-val">${item.note || '—'}</span>
         </div>
-        <div class="item-body">
-          <div class="item-attr-row"><span class="item-attr-label">特徵</span><span class="item-attr-val">${item.note || '—'}</span></div>
-          ${sizesStr ? `<div class="item-attr-row"><span class="item-attr-label">Size</span><div class="item-tags">${sizesStr}</div></div>` : ''}
-          ${colorsStr ? `<div class="item-attr-row"><span class="item-attr-label">Color</span><div class="item-tags">${colorsStr}</div></div>` : ''}
-        </div>
-      </div>`;
-    });
-    html += `</div>`;
-  }
-
+        ${sizesStr ? `<div class="item-attr-row"><span class="item-attr-label">Size</span><div class="item-tags">${sizesStr}</div></div>` : ''}
+        ${colorsStr ? `<div class="item-attr-row"><span class="item-attr-label">Color</span><div class="item-tags">${colorsStr}</div></div>` : ''}
+        ${accStr ? `<div class="item-attr-row"><span class="item-attr-label">附件</span><div class="item-tags">${accStr}</div></div>` : ''}
+      </div>
+    </div>`;
+  });
   html += `</div>`;
+
   document.getElementById('page-content').innerHTML = html;
 }
 
@@ -1174,7 +1138,16 @@ function renderQueue() {
           </div>
         </div>
         <div style="margin-top:8px">
-          <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">尺寸</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">附件</div>
+          <div style="display:flex;gap:10px">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="checkbox" ${(entry.accessories||[]).includes('含胸墊')?'checked':''} onchange="toggleAccessory('${entry.id}','含胸墊',this.checked)"> 含胸墊
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="checkbox" ${(entry.accessories||[]).includes('含皮帶')?'checked':''} onchange="toggleAccessory('${entry.id}','含皮帶',this.checked)"> 含皮帶
+            </label>
+          </div>
+        </div>
           <div class="tag-editor">
             ${SIZES_PRESET.map(s=>`<span class="tag-chip${(entry.sizes||[]).includes(s)?' selected':''}"
               onclick="toggleTag('${entry.id}','sizes','${s}',this)">${s}</span>`).join('')}
@@ -1236,6 +1209,14 @@ function updateQueue(id, field, val) {
   if (entry) entry[field] = val;
 }
 
+function toggleAccessory(id, val, checked) {
+  const entry = uploadQueue.find(e => e.id === id);
+  if (!entry) return;
+  if (!entry.accessories) entry.accessories = [];
+  if (checked) { if (!entry.accessories.includes(val)) entry.accessories.push(val); }
+  else entry.accessories = entry.accessories.filter(a => a !== val);
+}
+
 function toggleTag(id, field, val, el) {
   const entry = uploadQueue.find(e => e.id === id);
   if (!entry) return;
@@ -1266,16 +1247,30 @@ async function analyzeImage(entry) {
         max_tokens: 200,
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: mt, data: base64 } },
-          { type: 'text', text: `這是服飾店商品照片，紅色手寫數字是標價（通常兩位數如45 50 60 80 85等）。
-辨識：1.紅字價格 2.衣服類型 3.顏色（從列表選：黑白灰米棕藍深藍綠卡其粉紅紫橘花紋格紋條紋）
-只回傳JSON不要其他文字：
-{"price":數字或null,"category":"top_fitted|two_piece|top_other|outer|bottom|dress|other","colors":["顏色"],"note":"10字內特徵描述"}` }
+          { type: 'text', text: `你是服飾店商品辨識助手。檔名：「${entry.file.name}」
+
+這張照片上有用紅色或白色手寫的價格數字（通常是兩位數乘以10，如45=450、50=500、60=600、80=800）。檔名也可能包含價格或款式資訊可以參考。
+
+請辨識並只回傳以下JSON，不要有任何其他文字、說明或markdown：
+{"price":數字或null,"category":"top_fitted或two_piece或top_other或outer或bottom或dress或other","colors":["顏色"],"note":"10字內特徵"}
+
+category說明：top_fitted=貼身上衣、two_piece=兩件套、top_other=其他上衣、outer=外套、bottom=下身、dress=洋裝、other=其他` }
         ]}]
       })
     });
     const data = await resp.json();
     const text = data.content?.find(b=>b.type==='text')?.text || '';
-    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    console.log('AI raw response:', text);
+    const clean = text.replace(/```json|```/g,'').trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      console.error('JSON parse failed:', clean);
+      // Try to extract price with regex as fallback
+      const priceMatch = clean.match(/\b([3-9]\d{2}|[1-9]\d{3})\b/);
+      parsed = { price: priceMatch ? parseInt(priceMatch[1]) : null, category: 'top_other', colors: [], note: '' };
+    }
     entry.price = parsed.price || null;
     entry.category = parsed.category || 'top_other';
     entry.colors = parsed.colors || [];
@@ -1305,6 +1300,7 @@ async function saveAll() {
       note: entry.note,
       colors: entry.colors || [],
       sizes: entry.sizes || [],
+      accessories: entry.accessories || [],
       createdAt: Date.now()
     });
   });
@@ -1529,6 +1525,16 @@ function openModal(id) {
       style="margin-bottom:14px"
       onchange="modalUpdate('${id}','note',this.value)">
 
+    <div class="modal-section-label">附件</div>
+    <div style="display:flex;gap:14px;margin-bottom:14px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
+        <input type="checkbox" ${(item.accessories||[]).includes('含胸墊')?'checked':''} onchange="modalToggleAccessory('${id}','含胸墊',this.checked)"> 含胸墊
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
+        <input type="checkbox" ${(item.accessories||[]).includes('含皮帶')?'checked':''} onchange="modalToggleAccessory('${id}','含皮帶',this.checked)"> 含皮帶
+      </label>
+    </div>
+
     <div class="modal-section-label">尺寸</div>
     <div class="tag-editor" style="margin-bottom:14px">${sizesHtml}</div>
 
@@ -1591,6 +1597,15 @@ function modalUpdate(id, field, val) {
     const priceEl = document.querySelector('#modal-body span[style*="font-serif"]');
     if (priceEl) { priceEl.textContent = val ? '$'+val : '未標價'; priceEl.style.color = val ? pc.bg : 'var(--text-muted)'; }
   }
+}
+
+function modalToggleAccessory(id, val, checked) {
+  const item = db.items.find(i => i.id === id);
+  if (!item) return;
+  if (!item.accessories) item.accessories = [];
+  if (checked) { if (!item.accessories.includes(val)) item.accessories.push(val); }
+  else item.accessories = item.accessories.filter(a => a !== val);
+  save();
 }
 
 function modalToggleSize(id, val, el) {
