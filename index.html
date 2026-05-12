@@ -796,7 +796,7 @@ const DEFAULT_CATS = {
   other:      { name: '其他',     icon: '📦' }
 };
 let CATS = JSON.parse(localStorage.getItem('clothing_cats') || 'null') || DEFAULT_CATS;
-function saveCats() { localStorage.setItem('clothing_cats', JSON.stringify(CATS)); }const SIZES_PRESET  = ['XS','S','M','L','XL','F'];
+function saveCats() { localStorage.setItem('clothing_cats', JSON.stringify(CATS)); }const SIZES_PRESET  = ['F','XS','S','M','L','XL'];
 
 const PRICE_COLORS = {
   350: { bg: '#7b9e87', text: '#fff' },
@@ -1092,7 +1092,7 @@ async function handleFiles(files) {
   const arr = Array.from(files);
   for (const file of arr) {
     const url = URL.createObjectURL(file);
-    const entry = { id: genId(), file, url, price: null, category: 'top_other', note: '', colors: [], sizes: [], analyzing: true };
+    const entry = { id: genId(), file, url, price: null, category: 'top_other', note: '', colors: [], sizes: ['F'], analyzing: true };
     uploadQueue.push(entry);
   }
   renderQueue();
