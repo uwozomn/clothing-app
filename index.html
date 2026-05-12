@@ -879,22 +879,34 @@ async function save() {
   showSyncIndicator('saving');
   try {
     const payload = { items: db.items, memos: db.memos, lookbook: db.lookbook || [] };
-    console.log('Saving to JSONBin, items count:', db.items.length);
+    console.log('Saving to JSONBin, items count: ', db.items.length);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
     const resp = await fetch(JSONBIN_URL, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'X-Master-Key': JSONBIN_KEY
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeout);
+
     const result = await resp.json();
     console.log('JSONBin save response:', resp.status, JSON.stringify(result).slice(0, 200));
-    if (!resp.ok) throw new Error(`JSONBin error: ${resp.status} ${JSON.stringify(result)}`);
+    if (!resp.ok) throw new Error(`JSONBin error: ${resp.status}`);
     showSyncIndicator('saved');
   } catch(e) {
-    console.error('Save failed:', e);
-    showSyncIndicator('error');
+    if (e.name === 'AbortError') {
+      console.error('Save timeout');
+      showSyncIndicator('timeout');
+    } else {
+      console.error('Save failed:', e);
+      showSyncIndicator('error');
+    }
   }
   isSaving = false;
 }
@@ -939,6 +951,10 @@ function showSyncIndicator(state) {
     el.style.background = '#7b9e87'; el.style.color = '#fff'; el.style.opacity = '1';
     el.textContent = '✓ 已同步';
     setTimeout(() => { el.style.opacity = '0'; }, 2000);
+  } else if (state === 'timeout') {
+    el.style.background = '#b8936a'; el.style.color = '#fff'; el.style.opacity = '1';
+    el.textContent = '⚠ 同步逾時，請稍後再試';
+    setTimeout(() => { el.style.opacity = '0'; }, 4000);
   } else {
     el.style.background = '#c8392b'; el.style.color = '#fff'; el.style.opacity = '1';
     el.textContent = '⚠ 同步失敗';
