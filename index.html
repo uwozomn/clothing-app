@@ -814,17 +814,30 @@ const PRICE_COLORS = {
   400: { bg: '#6b9aaa', text: '#fff' },
   450: { bg: '#8b7faa', text: '#fff' },
   500: { bg: '#b07d8a', text: '#fff' },
-  550: { bg: '#c49a6c', text: '#fff' },
-  600: { bg: '#7a9e7e', text: '#fff' },
+  550: { bg: '#b8936a', text: '#fff' },
+  600: { bg: '#6a9e78', text: '#fff' },
   650: { bg: '#5b8fa8', text: '#fff' },
   700: { bg: '#9b7baa', text: '#fff' },
   750: { bg: '#b08060', text: '#fff' },
-  800: { bg: '#6a8e7f', text: '#fff' },
+  800: { bg: '#6a8e9f', text: '#fff' },
   850: { bg: '#8b6b8b', text: '#fff' },
-  900: { bg: '#5a7a8a', text: '#fff' },
+  900: { bg: '#5a7a6a', text: '#fff' },
+  950: { bg: '#7a6b9b', text: '#fff' },
+  1000: { bg: '#9b7060', text: '#fff' },
+  1100: { bg: '#5a8a7a', text: '#fff' },
+  1200: { bg: '#8a7b5a', text: '#fff' },
+  1300: { bg: '#6a7a9b', text: '#fff' },
+  1500: { bg: '#9b6b7a', text: '#fff' },
+  1800: { bg: '#7a9b6a', text: '#fff' },
+  2000: { bg: '#6b7aaa', text: '#fff' },
 };
 function getPriceColor(price) {
-  return PRICE_COLORS[price] || { bg: '#8a8078', text: '#fff' };
+  if (!price) return { bg: '#8a8078', text: '#fff' };
+  if (PRICE_COLORS[price]) return PRICE_COLORS[price];
+  // Auto-generate unique color for any price not in table
+  // Use price to deterministically pick a hue
+  const hue = (price * 37 + 180) % 360;
+  return { bg: `hsl(${hue}, 35%, 52%)`, text: '#fff' };
 }
 
 // ── Cloud Config ──
