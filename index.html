@@ -248,8 +248,14 @@ body {
 /* ── Items grid ── */
 .items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 12px;
+}
+@media (max-width: 1100px) {
+  .items-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 680px) {
+  .items-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 }
 
 .board-scroll {
@@ -338,7 +344,10 @@ body {
 .upload-text { font-size: 14px; color: var(--text-secondary); margin-bottom: 4px; }
 .upload-sub { font-size: 11px; color: var(--text-muted); }
 
-.upload-queue { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.upload-queue { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 280px)); gap: 16px; }
+@media (max-width: 680px) {
+  .upload-queue { grid-template-columns: 1fr; gap: 12px; }
+}
 .queue-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -692,7 +701,6 @@ select.field-input { cursor: pointer; }
   .price-col { width: 160px; }
 
   .overview-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-  .items-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   .lookbook-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .upload-queue { grid-template-columns: 1fr; }
 
