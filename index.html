@@ -1047,7 +1047,7 @@ function renderHome() {
         <span id="analysis-toggle-icon" style="margin-left:auto;font-size:12px;color:var(--text-muted)">${cache ? '▼' : '▼'}</span>
       </div>
       <div id="analysis-panel" style="display:${cache ? 'block' : 'none'};border-top:1px solid var(--border);padding:16px">
-        ${cache ? `<div id="analysis-content">${renderAnalysisText(cache.text)}</div>
+        ${cache ? `<div id="analysis-content">${cache.text ? renderAnalysisText(cache.text) : ''}</div>
           <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
             <span style="font-size:11px;color:var(--text-muted)">上次分析：${cache.time}</span>
             <button class="btn btn-ghost" onclick="runAnalysis('${homeFilter}')" style="font-size:11px;padding:4px 10px">重新分析</button>
@@ -1140,6 +1140,7 @@ function toggleAnalysisPanel() {
 }
 
 function renderAnalysisText(text) {
+  if (!text) return '';
   const lines = text.trim().split('\n').filter(l => l.trim());
   return lines.map(line => {
     const match = line.match(/\$(\d+)\s*【(.+?)】\s*[—–-]\s*(.+)/);
