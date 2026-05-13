@@ -537,6 +537,51 @@ select.field-input { cursor: pointer; }
   .modal-body { padding: 16px; }
 }
 
+/* ── Quiz ── */
+.quiz-card {
+  max-width: 420px;
+  margin: 0 auto;
+}
+.quiz-img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #eae6e0;
+  display: block;
+}
+.quiz-input {
+  font-size: 28px;
+  text-align: center;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  width: 100%;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  transition: border-color 0.15s;
+}
+.quiz-input:focus { outline: none; border-color: var(--border-strong); }
+.quiz-input.correct { border-color: #7b9e87; background: rgba(123,158,135,0.08); color: #7b9e87; }
+.quiz-input.wrong { border-color: var(--accent); background: rgba(200,57,43,0.06); color: var(--accent); }
+.quiz-result {
+  text-align: center;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+.quiz-result.correct { background: rgba(123,158,135,0.1); color: #5a8a6a; }
+.quiz-result.wrong { background: rgba(200,57,43,0.06); color: var(--accent); }
+.quiz-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 /* ── Lookbook ── */
 .lookbook-grid {
   display: grid;
@@ -759,8 +804,8 @@ select.field-input { cursor: pointer; }
     <div class="nav-item" onclick="navigate('memo')" id="nav-memo">
       <span class="nav-icon">📌</span> 員工備忘錄
     </div>
-    <div class="nav-item" onclick="navigate('settings')" id="nav-settings">
-      <span class="nav-icon">⚙️</span> 設定
+    <div class="nav-item" onclick="navigate('quiz')" id="nav-quiz">
+      <span class="nav-icon">🎯</span> 抽考價格
     </div>
     <div style="padding:16px 20px;margin-top:auto;border-top:1px solid rgba(255,255,255,0.06)">
       <div style="font-size:10px;color:var(--text-sidebar-muted);opacity:0.4;letter-spacing:0.04em">Staff Internal v1</div>
@@ -995,7 +1040,7 @@ function navigate(page, cat) {
 
 function renderPage() {
   updateSidebarCounts();
-  const pages = { home: renderHome, upload: renderUpload, memo: renderMemo, catMgmt: renderCatMgmt, lookbook: renderLookbook, settings: renderSettings };
+  const pages = { home: renderHome, upload: renderUpload, memo: renderMemo, catMgmt: renderCatMgmt, lookbook: renderLookbook, settings: renderSettings, quiz: renderQuiz };
   (pages[currentPage] || renderHome)();
 }
 
@@ -2180,6 +2225,157 @@ function addCat() {
   renderCatMgmt();
 }
 
+
+// ── Quiz ──
+let quizState = {
+  pool: [],
+  current: null,
+  idx: 0,
+  correct: 0,
+  total: 0,
+  revealed: false,
+  catFilter: 'all'
+};
+
+function renderQuiz() {
+  setTopbar('抽考價格', '');
+  const itemsWithPrice = db.items.filter(i => i.price);
+  if (!itemsWithPrice.length) {
+    document.getElementById('page-content').innerHTML = `<div class="empty-state"><div class="empty-icon">🎯</div><div class="empty-text">還沒有有價格的商品<br><span style="cursor:pointer;color:var(--accent)" onclick="navigate('upload')">去上傳新品 →</span></div></div>`;
+    return;
+  }
+
+  const catTabs = [['all','全部', itemsWithPrice.length], ...Object.entries(CATS).map(([k,v]) => [k, v.name, itemsWithPrice.filter(i=>i.category===k).length]).filter(([,,c])=>c>0)];
+  const tabHtml = catTabs.map(([key, label, cnt]) =>
+    `<button class="filter-tab${quizState.catFilter===key?' active':''}" onclick="setQuizCat('${key}')">${label}<span class="filter-tab-count">${cnt}</span></button>`
+  ).join('');
+
+  let html = `<div style="max-width:420px;margin:0 auto">
+    <div class="filter-tabs" style="margin-bottom:20px">${tabHtml}</div>`;
+
+  if (!quizState.current) {
+    html += `<div style="text-align:center;padding:3rem 0">
+      <div style="font-size:48px;margin-bottom:16px">🎯</div>
+      <div style="font-family:var(--font-serif);font-size:18px;margin-bottom:8px">抽考價格</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px">看照片和款式特徵，猜猜這件多少錢？</div>
+      <button class="btn btn-accent" onclick="startQuiz()" style="font-size:14px;padding:10px 28px">開始抽考</button>
+    </div>`;
+  } else {
+    const item = quizState.current;
+    const cat = CATS[item.category] || { icon: '📦', name: '其他' };
+    const pc = getPriceColor(item.price);
+
+    html += `<div class="quiz-card">
+      <div style="position:relative;margin-bottom:16px">
+        ${item.url ? `<img class="quiz-img" src="${item.url}" alt="">` : `<div class="quiz-img" style="display:flex;align-items:center;justify-content:center;font-size:60px">${cat.icon}</div>`}
+        <div style="position:absolute;top:10px;right:10px;background:rgba(26,24,20,0.6);color:#fff;font-size:11px;padding:3px 10px;border-radius:10px">${quizState.idx + 1} / ${quizState.pool.length}</div>
+      </div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:11px;color:var(--text-muted)">${cat.icon} ${cat.name}</span>
+          ${item.note ? `<span style="font-size:13px;color:var(--text-primary);font-weight:500">${item.note}</span>` : ''}
+          ${(item.colors||[]).map(c=>`<span class="item-tag">${c}</span>`).join('')}
+          ${(item.sizes||[]).map(s=>`<span class="item-tag">${s}</span>`).join('')}
+          ${(item.accessories||[]).map(a=>`<span class="item-tag" style="color:var(--accent);border-color:var(--accent)">${a}</span>`).join('')}
+        </div>
+      </div>
+
+      ${!quizState.revealed ? `
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-align:center">這件多少錢？</div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <span style="font-size:20px;color:var(--text-secondary)">$</span>
+            <input type="number" class="quiz-input" id="quiz-answer" placeholder="輸入價格"
+              onkeydown="if(event.key==='Enter')revealAnswer()">
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="revealAnswer()" style="width:100%;font-size:14px;padding:10px">確認</button>
+      ` : `
+        <div class="quiz-result ${quizState.lastCorrect ? 'correct' : 'wrong'}" style="margin-bottom:12px">
+          ${quizState.lastCorrect
+            ? `✓ 答對了！正確價格是 <strong style="font-family:var(--font-serif)">$${item.price}</strong>`
+            : `✗ 答錯了，正確價格是 <strong style="font-family:var(--font-serif)" style="color:${pc.bg}">$${item.price}</strong>`}
+        </div>
+        <div style="display:flex;gap:8px">
+          ${quizState.idx + 1 < quizState.pool.length
+            ? `<button class="btn btn-accent" onclick="nextQuiz()" style="flex:1;font-size:14px;padding:10px">下一題 →</button>`
+            : `<button class="btn btn-accent" onclick="showQuizResult()" style="flex:1;font-size:14px;padding:10px">查看成績</button>`}
+          <button class="btn btn-ghost" onclick="startQuiz()" style="font-size:13px;padding:10px">重新開始</button>
+        </div>
+      `}
+
+      <div class="quiz-score" style="margin-top:16px">
+        <span>答對 ${quizState.correct} / ${quizState.total} 題</span>
+        ${quizState.total > 0 ? `<span>·</span><span>${Math.round(quizState.correct/quizState.total*100)}%</span>` : ''}
+      </div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById('page-content').innerHTML = html;
+  if (quizState.current && !quizState.revealed) {
+    setTimeout(() => document.getElementById('quiz-answer')?.focus(), 100);
+  }
+}
+
+function setQuizCat(key) {
+  quizState.catFilter = key;
+  quizState.current = null;
+  quizState.correct = 0;
+  quizState.total = 0;
+  renderQuiz();
+}
+
+function startQuiz() {
+  const pool = db.items.filter(i => i.price && (quizState.catFilter === 'all' || i.category === quizState.catFilter));
+  // Shuffle
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  quizState.pool = shuffled;
+  quizState.idx = 0;
+  quizState.correct = 0;
+  quizState.total = 0;
+  quizState.current = shuffled[0] || null;
+  quizState.revealed = false;
+  renderQuiz();
+}
+
+function revealAnswer() {
+  const input = document.getElementById('quiz-answer');
+  const guess = parseInt(input?.value);
+  if (!guess) { input?.focus(); return; }
+  const item = quizState.current;
+  const isCorrect = guess === item.price;
+  quizState.lastCorrect = isCorrect;
+  quizState.revealed = true;
+  quizState.total++;
+  if (isCorrect) quizState.correct++;
+  renderQuiz();
+}
+
+function nextQuiz() {
+  quizState.idx++;
+  quizState.current = quizState.pool[quizState.idx];
+  quizState.revealed = false;
+  renderQuiz();
+}
+
+function showQuizResult() {
+  const pct = Math.round(quizState.correct / quizState.total * 100);
+  const emoji = pct === 100 ? '🏆' : pct >= 80 ? '🎉' : pct >= 60 ? '👍' : '💪';
+  const msg = pct === 100 ? '全部答對！完美！' : pct >= 80 ? '答得不錯！' : pct >= 60 ? '繼續加油！' : '多練習幾次吧！';
+  document.getElementById('page-content').innerHTML = `
+    <div style="max-width:420px;margin:0 auto;text-align:center;padding:3rem 0">
+      <div style="font-size:56px;margin-bottom:16px">${emoji}</div>
+      <div style="font-family:var(--font-serif);font-size:24px;margin-bottom:8px">${quizState.correct} / ${quizState.total}</div>
+      <div style="font-size:15px;color:var(--text-secondary);margin-bottom:4px">${pct}% 答對率</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:28px">${msg}</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn btn-accent" onclick="startQuiz()" style="font-size:14px;padding:10px 24px">再來一次</button>
+        <button class="btn btn-ghost" onclick="quizState.current=null;renderQuiz()" style="font-size:13px;padding:10px 20px">返回</button>
+      </div>
+    </div>`;
+}
 
 // ── Settings ──
 function renderSettings() {
