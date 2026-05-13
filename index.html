@@ -809,7 +809,11 @@ const DEFAULT_CATS = {
   other:      { name: '其他',     icon: '📦' }
 };
 let CATS = JSON.parse(localStorage.getItem('clothing_cats') || 'null') || DEFAULT_CATS;
-function saveCats() { localStorage.setItem('clothing_cats', JSON.stringify(CATS)); }const SIZES_PRESET  = ['F','XS','S','M','L','XL'];
+function saveCats() {
+  localStorage.setItem('clothing_cats', JSON.stringify(CATS));
+  // Also save to cloud with db
+  save();
+}const SIZES_PRESET  = ['F','XS','S','M','L','XL'];
 
 const PRICE_COLORS = {
   350: { bg: '#a8c4b8', text: '#fff' },  // 淡薄荷綠
@@ -865,6 +869,11 @@ async function loadFromCloud() {
     const data = await resp.json();
     if (data.record) {
       db = { items: data.record.items || [], memos: data.record.memos || [], lookbook: data.record.lookbook || [] };
+      // Load CATS from cloud if available, fallback to localStorage then DEFAULT_CATS
+      if (data.record.cats && Object.keys(data.record.cats).length > 0) {
+        CATS = data.record.cats;
+        localStorage.setItem('clothing_cats', JSON.stringify(CATS));
+      }
     }
   } catch(e) {
     console.warn('Cloud load failed, using empty db', e);
@@ -878,7 +887,7 @@ async function save() {
   isSaving = true;
   showSyncIndicator('saving');
   try {
-    const payload = { items: db.items, memos: db.memos, lookbook: db.lookbook || [] };
+    const payload = { items: db.items, memos: db.memos, lookbook: db.lookbook || [], cats: CATS };
     console.log('Saving to JSONBin, items count: ', db.items.length);
 
     const controller = new AbortController();
